@@ -8,3 +8,7 @@ export interface ReviewRequest extends Model {
   creator: string
   diff: Diff<any>
 }
+
+export interface ReviewableModel extends Model {
+  staged: boolean
+}
