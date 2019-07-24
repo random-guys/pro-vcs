@@ -5,7 +5,7 @@ export const ReviewRequestSchema = SchemaFactory({
   reference: { ...trimmedString, required: true, index: true },
   document_type: { ...trimmedLowercaseString, required: true, index: true },
   creator: { ...trimmedString, required: true, index: true },
-  diff: { type: SchemaTypes.Mixed, required: true }
+  diffs: { type: SchemaTypes.Mixed, required: true }
 })
 
 export const ReviewableSchema = (

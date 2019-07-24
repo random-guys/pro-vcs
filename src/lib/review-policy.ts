@@ -23,7 +23,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
       reference: newModel.id,
       document_type: this.documentType,
       creator: user,
-      diff: freshObjectDiff
+      diffs: freshObjectDiff
     })
 
     // ask for review
