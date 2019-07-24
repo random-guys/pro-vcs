@@ -6,7 +6,7 @@ export interface ReviewRequest extends Model {
   reference: string
   document_type: string
   creator: string
-  diff: Diff<any>
+  diff: Diff<any>[]
 }
 
 export interface ReviewableModel extends Model {
