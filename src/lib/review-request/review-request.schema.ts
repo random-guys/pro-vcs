@@ -1,5 +1,5 @@
 import { SchemaFactory, trimmedString, trimmedLowercaseString } from "@random-guys/bucket";
-import { SchemaTypes } from "mongoose";
+import { SchemaTypes, SchemaDefinition, SchemaOptions } from "mongoose";
 
 export const ReviewRequestSchema = SchemaFactory({
   reference: { ...trimmedString, required: true, index: true },
@@ -7,3 +7,21 @@ export const ReviewRequestSchema = SchemaFactory({
   creator: { ...trimmedString, required: true, index: true },
   diff: { type: SchemaTypes.Mixed, required: true }
 })
+
+export const ReviewableSchema = (
+  schema: SchemaDefinition,
+  options?: SchemaOptions,
+  autoIndex?: boolean
+) => {
+  return SchemaFactory({
+    ...schema,
+    staged: {
+      type: SchemaTypes.Boolean,
+      required: true,
+      default: false
+    }
+  },
+    options,
+    autoIndex
+  )
+}
