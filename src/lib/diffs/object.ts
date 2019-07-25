@@ -1,4 +1,4 @@
-import { Accumulator, diff, Diff } from "deep-diff";
+import { diff, Diff } from "deep-diff";
 
 export function difference(lhs: any, rhs: any) {
   const acc = diff(lhs, rhs, {}, objectAccumulator())
@@ -15,8 +15,6 @@ export function push(diff: Diff<any>) {
     setByPath(this.result, diff.path, diff)
     return
   }
-  console.log(diff)
-  throw new Error('Unknown diff')
 }
 
 export function setByPath(data: any, path: string[], value: any) {

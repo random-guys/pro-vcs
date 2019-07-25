@@ -24,8 +24,7 @@ describe('Policy Operations', () => {
 
   afterAll(async () => {
     // clean up
-    await dataRepo.destroy({})
-    await requestRepo.destroy({})
+    await mongooseNs.connection.dropDatabase()
     await mongooseNs.disconnect()
   })
 
@@ -43,11 +42,9 @@ describe('Policy Operations', () => {
     expect(user.staged).toBe(true)
     expect(patch.creator).toBe('arewaolakunle')
 
-    const stagedDiff = patch.diffs['staged']
-    expect(stagedDiff).toBeTruthy()
-    expect(stagedDiff.kind).toBe('N')
-    expect(stagedDiff.path).toStrictEqual(['staged'])
-    expect(stagedDiff['rhs']).toBeTruthy()
-    expect(stagedDiff['rhs']).toBe(true)
+    const stagedDiff = patch.diffs.length
+    expect(patch.diffs.length).toBe(1)
+    expect(patch.diffs[0].kind).toBe('E')
+    expect(patch.diffs[0]['lhs']).toBeNull()
   })
 })

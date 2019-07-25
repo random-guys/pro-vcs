@@ -1,7 +1,7 @@
 import { BaseRepository } from "@random-guys/bucket";
 import { ReviewableModel, ReviewRequestRepository } from "./review-request";
-import { freshObjectDiff } from "./diffs/store";
 import { requestReview } from "./lotan-client";
+import { diff } from "deep-diff";
 
 export class ReviewPolicy<T extends ReviewableModel> {
   constructor(
@@ -23,7 +23,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
       reference: newModel.id,
       document_type: this.documentType,
       creator: user,
-      diffs: freshObjectDiff
+      diffs: diff(null, attributes)
     })
 
     // ask for review
