@@ -18,7 +18,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
     // create the document in staged mode
     const newModel = await this.dataRepo.create({
       ...attributes,
-      staged: true
+      frozen: true
     })
 
     // create a request

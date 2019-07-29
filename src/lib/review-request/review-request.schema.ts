@@ -15,7 +15,7 @@ export const ReviewableSchema = (
 ) => {
   return SchemaFactory({
     ...schema,
-    staged: {
+    frozen: {
       type: SchemaTypes.Boolean,
       required: true,
       default: false

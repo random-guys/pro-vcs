@@ -39,7 +39,7 @@ describe('Policy Operations', () => {
       reference: user.id
     })
 
-    expect(user.staged).toBe(true)
+    expect(user.frozen).toBe(true)
     expect(patch.creator).toBe('arewaolakunle')
 
     const stagedDiff = patch.diffs.length
