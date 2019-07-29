@@ -1,14 +1,17 @@
 import { BaseRepository } from "@random-guys/bucket";
-import { ReviewableModel, ReviewRequestRepository } from "./review-request";
-import { requestReview } from "./lotan-client";
 import { diff } from "deep-diff";
+import { requestReview } from "./prohub-client";
+import { ReviewableModel, ReviewRequestRepository } from "./review-request";
+import { slugify } from "./string";
 
 export class ReviewPolicy<T extends ReviewableModel> {
+  private documentType: string
+
   constructor(
-    private documentType: string,
     private requestRepo: ReviewRequestRepository,
     private dataRepo: BaseRepository<T>
   ) {
+    this.documentType = slugify(dataRepo.name)
   }
 
   async create(user: string, attributes: object): Promise<T> {

@@ -18,7 +18,7 @@ describe('Policy Operations', () => {
     )
     requestRepo = new ReviewRequestRepository(mongoose)
     dataRepo = new UserRepository(mongoose)
-    dataPolicy = new ReviewPolicy('users', requestRepo, dataRepo)
+    dataPolicy = new ReviewPolicy(requestRepo, dataRepo)
   })
 
 

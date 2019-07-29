@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { ReviewRequestRepository } from "../src";
 
 function timeout(time: number) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     setTimeout(resolve, time)
   })
 }
