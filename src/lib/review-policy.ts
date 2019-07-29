@@ -80,8 +80,6 @@ export class ReviewPolicy<T extends ReviewableModel> {
    * is not $set
    */
   async update(user: string, query: string | object, attributes: any) {
-    // since there's no such thing as dryrun....this is going to be
-    // fucking slow
     const current = await this.dataRepo.atomicUpdate(query, { frozen: true })
 
     // make sure attributes doesn't contain frozen
@@ -94,6 +92,24 @@ export class ReviewPolicy<T extends ReviewableModel> {
       creator: user,
       patchType: 'update',
       diffs: diff(current.toObject(), diffable)
+    })
+
+    // ask for review
+    await requestReview(request)
+
+    return current
+  }
+
+  async remove(user: string, query: string | object) {
+    const current = await this.dataRepo.atomicUpdate(query, { frozen: true })
+
+    // create a request
+    const request = await this.requestRepo.create({
+      reference: current.id,
+      document_type: this.documentType,
+      creator: user,
+      patchType: 'delete',
+      diffs: diff(current.toObject(), null)
     })
 
     // ask for review
