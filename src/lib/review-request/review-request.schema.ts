@@ -5,6 +5,11 @@ export const ReviewRequestSchema = SchemaFactory({
   reference: { ...trimmedString, required: true, index: true },
   document_type: { ...trimmedLowercaseString, required: true, index: true },
   creator: { ...trimmedString, required: true, index: true },
+  patchType: {
+    ...trimmedString,
+    required: true,
+    enum: ['create', 'update', 'delete']
+  },
   diffs: { type: SchemaTypes.Mixed, required: true }
 })
 

@@ -1,6 +1,6 @@
 import { diff, Diff } from "deep-diff";
 
-export function difference(lhs: any, rhs: any) {
+export function difference(lhs: any, rhs: any): Diff<any> {
   const acc = diff(lhs, rhs, {}, objectAccumulator())
   return acc['result']
 }

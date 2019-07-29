@@ -16,6 +16,7 @@ describe('Special Repo Methods', () => {
     reference: 'reference',
     creator: 'arewa',
     document_type: 'man',
+    patchType: 'update',
     diffs: []
   }
 
