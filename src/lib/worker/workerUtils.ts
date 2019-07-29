@@ -1,5 +1,7 @@
 import Logger from "bunyan";
-import { createWorker, Dependencies } from "./bootstrap";
+import { createWorker, Dependencies, Handler, createHandler } from "./bootstrap";
+import { subscriber } from "@random-guys/eventbus";
+import { slugify } from "../string";
 
 export interface PostApprovalWorkerConfig {
   service: string
@@ -19,4 +21,34 @@ export function createPostApprovalWorker(logger: Logger, config: PostApprovalWor
     redis_url: config.redis_url,
     postSetup: config.setupHandlers
   })
+}
+
+export async function onCreateApproved<T>(name: string, deps: Dependencies, handler: Handler<T>) {
+  const eventName = slugify(name)
+  await subscriber.on(
+    'approvals',
+    `${eventName}.created`,
+    `${eventName.toUpperCase()}_CREATE_QUEUE`,
+    createHandler(deps, handler)
+  );
+}
+
+export async function onUpdateApproved<T>(name: string, deps: Dependencies, handler: Handler<T>) {
+  const eventName = slugify(name)
+  await subscriber.on(
+    'approvals',
+    `${eventName}.updated`,
+    `${eventName.toUpperCase()}_UPDATE_QUEUE`,
+    createHandler(deps, handler)
+  );
+}
+
+export async function onDeleteApproved<T>(name: string, deps: Dependencies, handler: Handler<T>) {
+  const eventName = slugify(name)
+  await subscriber.on(
+    'approvals',
+    `${eventName}.deleted`,
+    `${eventName.toUpperCase()}_DELETE_QUEUE`,
+    createHandler(deps, handler)
+  );
 }
