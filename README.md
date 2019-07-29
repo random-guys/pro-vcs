@@ -8,4 +8,4 @@ Simple description here
 ## How does it work?
 
 ## TODO
-[ ] Do something
+[ ] More tests

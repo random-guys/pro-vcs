@@ -1,5 +1,5 @@
-import { BaseRepository } from "@random-guys/bucket";
-import { diff } from "deep-diff";
+import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
+import { diff, applyChange } from "deep-diff";
 import { requestReview } from "./prohub-client";
 import { ReviewableModel, ReviewRequestRepository } from "./review-request";
 import { slugify } from "./string";
@@ -34,5 +34,31 @@ export class ReviewPolicy<T extends ReviewableModel> {
     await requestReview(request)
 
     return newModel
+  }
+
+  async getLatest(reference: string) {
+    const latest = await this.requestRepo.latestPatch(reference)
+    const current = await this.dataRepo.byID(reference)
+
+    if (latest) {
+      // close early
+      if (latest.patchType === 'create') {
+        return current
+      }
+
+      // there's nothing for you
+      if (latest.patchType === 'delete') {
+        const modelName = this.dataRepo.name
+        throw new ModelNotFoundError(`${modelName} not found`)
+      }
+
+      // apply diff if patch is an update
+      if (latest.patchType === 'update') {
+        latest.diffs.forEach((diff) => {
+          applyChange(current, {}, diff)
+        })
+      }
+    }
+    return current
   }
 } 
