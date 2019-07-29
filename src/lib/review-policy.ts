@@ -30,7 +30,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
       document_type: this.documentType,
       creator: user,
       patchType: 'create',
-      diffs: diff(null, { ...diffable })
+      diffs: diff(null, diffable)
     })
 
     // ask for review

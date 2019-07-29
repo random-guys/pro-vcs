@@ -22,7 +22,11 @@
   ],
   "homepage": "https://github.com/random-guys/provcs#readme",
   "devDependencies": {
+    "@types/amqplib": "^0.5.13",
+    "@types/bunyan": "^1.8.6",
     "@types/deep-diff": "^1.0.0",
+    "@types/express": "^4.17.0",
+    "@types/ioredis": "^4.0.13",
     "@types/jest": "^24.0.14",
     "@types/lodash": "^4.14.136",
     "@types/mongoose": "^5.5.9",
@@ -35,7 +39,12 @@
   },
   "dependencies": {
     "@random-guys/bucket": "^0.4.0",
+    "@random-guys/eventbus": "^2.0.1",
+    "amqplib": "^0.5.3",
+    "bunyan": "^1.8.12",
     "deep-diff": "^1.0.2",
+    "express": "^4.17.1",
+    "ioredis": "^4.11.2",
     "lodash": "^4.17.14",
     "mongoose": "^5.6.6"
   }
