@@ -1,4 +1,4 @@
-# sp-lib-starter
+# pro-vcs
 
 Simple description here
 
@@ -8,4 +8,4 @@ Simple description here
 ## How does it work?
 
 ## TODO
-[ ] Do something
+[ ] More tests
