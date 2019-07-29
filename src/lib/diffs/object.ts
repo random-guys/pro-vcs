@@ -9,6 +9,12 @@ export function objectAccumulator() {
   return { result: {}, length: 0, push }
 }
 
+export function convert(diffs: Diff<any>[]): any {
+  const acc = objectAccumulator()
+  diffs.forEach(d => acc.push(d))
+  return acc.result
+}
+
 export function push(diff: Diff<any>) {
   // this.result
   if (diff.path) {
