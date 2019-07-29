@@ -1,4 +1,4 @@
-# provcs
+# pro-vcs
 
 Simple description here
 

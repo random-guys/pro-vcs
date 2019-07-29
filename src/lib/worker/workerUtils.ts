@@ -10,7 +10,7 @@ export interface PostApprovalWorkerConfig {
   setupHandlers(deps: Dependencies): Promise<void>
 }
 
-export default function createPostApprovalWorker(logger: Logger, config: PostApprovalWorkerConfig) {
+export function createPostApprovalWorker(logger: Logger, config: PostApprovalWorkerConfig) {
   createWorker(logger, {
     name: `${config.service}_post_approval_worker`,
     amqp_url: config.amqp_url,

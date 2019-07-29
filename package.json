@@ -1,5 +1,5 @@
 {
-  "name": "@random-guys/provcs",
+  "name": "@random-guys/pro-vcs",
   "version": "0.1.0",
   "description": "Wrapper around axios for interservice communication",
   "main": "dist/index.js",
@@ -12,15 +12,15 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/random-guys/provcs.git"
+    "url": "git+https://github.com/random-guys/pro-vcs.git"
   },
   "bugs": {
-    "url": "https://github.com/random-guys/provcs/issues"
+    "url": "https://github.com/random-guys/pro-vcs/issues"
   },
   "files": [
     "dist/"
   ],
-  "homepage": "https://github.com/random-guys/provcs#readme",
+  "homepage": "https://github.com/random-guys/pro-vcs#readme",
   "devDependencies": {
     "@types/amqplib": "^0.5.13",
     "@types/bunyan": "^1.8.6",
