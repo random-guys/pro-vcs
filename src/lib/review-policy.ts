@@ -1,4 +1,4 @@
-import { BaseRepository, ModelNotFoundError, DuplicateModelError } from "@random-guys/bucket";
+import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
 import { applyChange, diff } from "deep-diff";
 import { requestReview } from "./prohub-client";
 import { ReviewableModel, ReviewRequestRepository } from "./review-request";
@@ -23,7 +23,8 @@ export class ReviewPolicy<T extends ReviewableModel> {
     })
 
     // make sure attributes doesn't contain frozen
-    const { _frozen, ...diffable } = attributes
+    const { frozen, ...diffable } = attributes
+
     // create a request
     const request = await this.requestRepo.create({
       reference: newModel.id,
@@ -55,8 +56,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
 
       // there's nothing for you
       if (latest.patchType === 'delete') {
-        const modelName = this.dataRepo.name
-        throw new ModelNotFoundError(`${modelName} not found`)
+        throw new ModelNotFoundError(`${this.dataRepo.name} not found`)
       }
 
       // apply diff if patch is an update

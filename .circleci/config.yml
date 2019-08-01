@@ -29,6 +29,8 @@ jobs:
     working_directory: ~/app
     docker:
       - image: circleci/node:10
+      - image: mongo
+      - image: rabbitmq:3.5.4
     steps:
       - checkout
       - restore_cache:
