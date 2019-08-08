@@ -1,9 +1,8 @@
 import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
-import { applyChange, diff } from "deep-diff";
-import { PatcheableModel, PatchRepository, Patch } from "./patch";
+import { diff } from "deep-diff";
+import { PatcheableModel, PatchRepository } from "./patch";
 import { requestReview } from "./prohub-client";
 import { slugify } from "./string";
-import uuid from "uuid/v4"
 
 
 export class ReviewPolicy<T extends PatcheableModel> {
@@ -16,18 +15,19 @@ export class ReviewPolicy<T extends PatcheableModel> {
     this.documentType = slugify(dataRepo.name)
   }
 
-  /**
-   * Creates a patch pending approval such that when approved
-   * gets merged into the mian DB
-   * @param user user who's trying to create a document
-   * @param attributes attributes to be stored
-   */
-  async create(user: string, attributes: Partial<T>): Promise<string> {
+  async create(user: string, attributes: Partial<T>): Promise<T> {
     // make sure frozen cannot be set
     const { frozen, ...diffable } = attributes
-    const reference = uuid()
+
+    // create document temporarily
+    const data = await this.dataRepo.create({
+      frozen: true,
+      ...diffable
+    })
+
+    // create patch for reference
     const patch = await this.patchRepo.create({
-      reference,
+      reference: data.id,
       document_type: this.documentType,
       owner: user,
       patchType: 'create',
@@ -37,7 +37,7 @@ export class ReviewPolicy<T extends PatcheableModel> {
     // ask for a review
     await requestReview(patch)
 
-    return reference
+    return data
   }
 
   /**
