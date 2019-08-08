@@ -40,6 +40,10 @@ export class ReviewPolicy<T extends PatcheableModel> {
     return data
   }
 
+  async byQuery(query: object) {
+    return this.dataRepo.byQuery(query)
+  }
+
   /**
    * Get latest document based on patch history.
    * @param reference reference ID from source document
