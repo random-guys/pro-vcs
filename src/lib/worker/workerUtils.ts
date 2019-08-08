@@ -12,8 +12,8 @@ export interface PostApprovalWorkerConfig {
   setupHandlers(context: Context): Promise<void>
 }
 
-export function createPostApprovalWorker(logger: Logger, config: PostApprovalWorkerConfig) {
-  createWorker(logger, {
+export function createPostApprovalWorker(config: PostApprovalWorkerConfig) {
+  createWorker({
     name: `${config.service}_post_approval_worker`,
     amqp_url: config.amqp_url,
     health_port: config.health_port,
