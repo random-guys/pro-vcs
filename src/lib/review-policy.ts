@@ -1,15 +1,15 @@
 import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
 import { applyChange, diff } from "deep-diff";
+import { PatcheableModel, PatchRepository } from "./patch";
 import { requestReview } from "./prohub-client";
-import { ReviewableModel, ReviewRequestRepository } from "./review-request";
 import { slugify } from "./string";
 
 
-export class ReviewPolicy<T extends ReviewableModel> {
+export class ReviewPolicy<T extends PatcheableModel> {
   private documentType: string
 
   constructor(
-    private requestRepo: ReviewRequestRepository,
+    private patchRepo: PatchRepository,
     private dataRepo: BaseRepository<T>
   ) {
     this.documentType = slugify(dataRepo.name)
@@ -26,7 +26,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
     const { frozen, ...diffable } = attributes
 
     // create a request
-    const request = await this.requestRepo.create({
+    const request = await this.patchRepo.create({
       reference: newModel.id,
       document_type: this.documentType,
       creator: user,
@@ -45,7 +45,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
    * @param reference reference ID from source document
    */
   async getLatest(reference: string) {
-    const latest = await this.requestRepo.latestPatch(reference)
+    const latest = await this.patchRepo.byReference(reference)
     const current = await this.dataRepo.byID(reference)
 
     if (latest) {
@@ -86,7 +86,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
     const { frozen, ...diffable } = attributes
 
     // create a request
-    const request = await this.requestRepo.create({
+    const request = await this.patchRepo.create({
       reference: current.id,
       document_type: this.documentType,
       creator: user,
@@ -104,7 +104,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
     const current = await this.dataRepo.atomicUpdate(query, { frozen: true })
 
     // create a request
-    const request = await this.requestRepo.create({
+    const request = await this.patchRepo.create({
       reference: current.id,
       document_type: this.documentType,
       creator: user,

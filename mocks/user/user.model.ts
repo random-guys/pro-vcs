@@ -1,6 +1,6 @@
-import { ReviewableModel } from "../../src";
+import { PatcheableModel } from "../../src";
 
-export interface User extends ReviewableModel {
+export interface User extends PatcheableModel {
   fullname: string
   email_address: string
 }

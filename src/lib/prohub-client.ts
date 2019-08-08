@@ -1,6 +1,6 @@
-import { ReviewRequest } from "./review-request";
+import { Patch } from "./patch";
 
 
-export async function requestReview(request: ReviewRequest) {
+export async function requestReview(patch: Patch) {
 
 }
