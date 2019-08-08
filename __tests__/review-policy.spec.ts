@@ -2,7 +2,6 @@ import { MongooseNamespace, defaultMongoOpts } from "@random-guys/bucket";
 import { PatchRepository, ReviewPolicy } from "../src"
 import { UserRepository, User } from "../mocks/user"
 import mongoose from "mongoose";
-import { diff } from "deep-diff"
 
 
 describe('Policy Operations', () => {
@@ -28,6 +27,18 @@ describe('Policy Operations', () => {
     // clean up
     await mongooseNs.connection.dropDatabase()
     await mongooseNs.disconnect()
+  })
+
+  it('should create a patch when create is called', async () => {
+    const ref = await dataPolicy.create('arewaolakunle', {
+      fullname: 'Olakunle Daniel Arewa',
+      email_address: 'danceasarxx@gmail.com'
+    })
+
+    const patch = await patchRepo.byReference(ref)
+    expect(patch.patchType).toBe('create')
+    expect(patch.payload).toBeTruthy()
+    expect(patch.payload['fullname']).toBe('Olakunle Daniel Arewa')
   })
 
 

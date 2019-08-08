@@ -36,6 +36,10 @@ describe('Special Repo Methods', () => {
     await mongooseNs.disconnect()
   })
 
+  it('should not', async () => {
+    expect(true).toBe(true)
+  })
+
 
   // it('should create a staged document', async () => {
   //   const creators = ['arewa', 'chudi', 'farouq', 'ismail', 'yemi']

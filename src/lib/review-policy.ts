@@ -1,8 +1,9 @@
 import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
 import { applyChange, diff } from "deep-diff";
-import { PatcheableModel, PatchRepository } from "./patch";
+import { PatcheableModel, PatchRepository, Patch } from "./patch";
 import { requestReview } from "./prohub-client";
 import { slugify } from "./string";
+import uuid from "uuid/v4"
 
 
 export class ReviewPolicy<T extends PatcheableModel> {
@@ -15,29 +16,28 @@ export class ReviewPolicy<T extends PatcheableModel> {
     this.documentType = slugify(dataRepo.name)
   }
 
-  async create(user: string, attributes: any): Promise<T> {
-    // create the document in staged mode
-    const newModel = await this.dataRepo.create({
-      ...attributes,
-      frozen: true
-    })
-
-    // make sure attributes doesn't contain frozen
+  /**
+   * Creates a patch pending approval such that when approved
+   * gets merged into the mian DB
+   * @param user user who's trying to create a document
+   * @param attributes attributes to be stored
+   */
+  async create(user: string, attributes: Partial<T>): Promise<string> {
+    // make sure frozen cannot be set
     const { frozen, ...diffable } = attributes
-
-    // create a request
-    const request = await this.patchRepo.create({
-      reference: newModel.id,
+    const reference = uuid()
+    const patch = await this.patchRepo.create({
+      reference,
       document_type: this.documentType,
-      creator: user,
+      owner: user,
       patchType: 'create',
-      diffs: diff(null, diffable)
+      payload: diffable
     })
 
-    // ask for review
-    await requestReview(request)
+    // ask for a review
+    await requestReview(patch)
 
-    return newModel
+    return reference
   }
 
   /**
@@ -60,13 +60,13 @@ export class ReviewPolicy<T extends PatcheableModel> {
       }
 
       // apply diff if patch is an update
-      if (latest.patchType === 'update') {
-        // note that mongoose will not allow deletes
-        // so those diffs will be ignored
-        latest.diffs.forEach((diff) => {
-          applyChange(current, {}, diff)
-        })
-      }
+      // if (latest.patchType === 'update') {
+      //   // note that mongoose will not allow deletes
+      //   // so those diffs will be ignored
+      //   latest.diffs.forEach((diff) => {
+      //     applyChange(current, {}, diff)
+      //   })
+      // }
     }
     return current
   }
