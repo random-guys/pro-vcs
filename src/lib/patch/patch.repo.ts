@@ -14,4 +14,12 @@ export class PatchRepository extends BaseRepository<Patch>{
   byReference(reference: string) {
     return this.byQuery({ reference })
   }
+
+  /**
+   * Delete patch by reference.
+   * @param reference 
+   */
+  deleteByReference(reference: string) {
+    return this.destroy({ reference })
+  }
 }
