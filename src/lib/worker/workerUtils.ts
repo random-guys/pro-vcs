@@ -1,5 +1,5 @@
 import Logger from "bunyan";
-import { createWorker, Dependencies, Handler, createHandler } from "./bootstrap";
+import { createWorker, Context, Handler, createHandler } from "./bootstrap";
 import { subscriber } from "@random-guys/eventbus";
 import { slugify } from "../string";
 
@@ -9,7 +9,7 @@ export interface PostApprovalWorkerConfig {
   health_port: number
   mongodb_url: string
   redis_url?: string
-  setupHandlers(deps: Dependencies): Promise<void>
+  setupHandlers(context: Context): Promise<void>
 }
 
 export function createPostApprovalWorker(logger: Logger, config: PostApprovalWorkerConfig) {
@@ -23,32 +23,32 @@ export function createPostApprovalWorker(logger: Logger, config: PostApprovalWor
   })
 }
 
-export async function onCreateApproved<T>(name: string, deps: Dependencies, handler: Handler<T>) {
+export async function onCreateApproved<T>(name: string, context: Context, handler: Handler<T>) {
   const eventName = slugify(name)
   await subscriber.on(
-    'approvals',
+    'reviews',
     `${eventName}.created`,
     `${eventName.toUpperCase()}_CREATE_QUEUE`,
-    createHandler(deps, handler)
+    createHandler(context, handler)
   );
 }
 
-export async function onUpdateApproved<T>(name: string, deps: Dependencies, handler: Handler<T>) {
+export async function onUpdateApproved<T>(name: string, context: Context, handler: Handler<T>) {
   const eventName = slugify(name)
   await subscriber.on(
-    'approvals',
+    'reviews',
     `${eventName}.updated`,
     `${eventName.toUpperCase()}_UPDATE_QUEUE`,
-    createHandler(deps, handler)
+    createHandler(context, handler)
   );
 }
 
-export async function onDeleteApproved<T>(name: string, deps: Dependencies, handler: Handler<T>) {
+export async function onDeleteApproved<T>(name: string, context: Context, handler: Handler<T>) {
   const eventName = slugify(name)
   await subscriber.on(
-    'approvals',
+    'reviews',
     `${eventName}.deleted`,
     `${eventName.toUpperCase()}_DELETE_QUEUE`,
-    createHandler(deps, handler)
+    createHandler(context, handler)
   );
 }
