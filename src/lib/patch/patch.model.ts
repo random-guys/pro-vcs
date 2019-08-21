@@ -1,18 +1,16 @@
 import { Model } from "@random-guys/bucket";
 import { Diff } from "deep-diff";
 
+export type ObjectType = 'create' | 'update' | 'delete' | 'approved'
+export type Payload<T> = T | Diff<any>[]
 
-export type PatchType = 'create' | 'update' | 'delete'
-export type PatchPayload = object | Diff<any>[]
-
-export interface Patch extends Model {
-  reference: string
-  document_type: string
-  owner: string
-  patchType: PatchType
-  payload?: PatchPayload
+export interface DataModel<T> extends Model {
+  metadata: Metadata
+  payload?: Payload<T>
 }
 
-export interface PatcheableModel extends Model {
-  frozen: boolean
+export interface Metadata {
+  reference: string
+  owner: string
+  objectType: ObjectType
 }
