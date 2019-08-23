@@ -22,10 +22,20 @@ describe('Event Schema Rules', () => {
     await mongooseNs.disconnect()
   })
 
-  it('Should attach id and frozen for toObject', async () => {
+  it('Should add create metadata to a new event', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser())
 
     expect(user.metadata.action).toBe('create')
+
+    // cleanup afterwards
+    await user.remove()
+  })
+
+  it('Should get a newly created event', async () => {
+    const user = await dataRepo.create('arewaolakunle', mockUser())
+    const loadedUser = await dataRepo.get('olaolu', user.id)
+
+    expect(loadedUser.id).toBe(user.id)
 
     // cleanup afterwards
     await user.remove()

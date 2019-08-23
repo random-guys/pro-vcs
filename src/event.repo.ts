@@ -18,4 +18,10 @@ export class EventRepository<T>{
       payload: event
     })
   }
+
+  async get(user: string, reference: string) {
+    return this.internalRepo.byQuery({
+      'metadata.reference': reference
+    })
+  }
 }
