@@ -1,6 +1,6 @@
-import { ReviewableModel } from "../../src";
+import { Model } from "@random-guys/bucket";
 
-export interface User extends ReviewableModel {
+export interface User extends Model {
   fullname: string
   email_address: string
 }

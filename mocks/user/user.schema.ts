@@ -1,7 +1,7 @@
 import { trimmedString } from "@random-guys/bucket";
-import { ReviewableSchema } from "../../src/";
+import { SchemaDefinition } from "mongoose";
 
-export const UserSchema = ReviewableSchema({
+export const UserSchema: SchemaDefinition = {
   fullname: { ...trimmedString, required: true, index: true },
   email_address: { ...trimmedString, required: true, unique: true }
-})
+}

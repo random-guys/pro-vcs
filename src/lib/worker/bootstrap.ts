@@ -1,10 +1,10 @@
-import express, { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import { subscriber, publisher } from '@random-guys/eventbus';
-import Logger from "bunyan"
-import Redis, { Redis as RedisType } from "ioredis"
 import { MongooseNamespace } from '@random-guys/bucket';
+import { publisher, subscriber } from '@random-guys/eventbus';
 import { ConsumeMessage } from 'amqplib';
+import Logger, { createLogger } from "bunyan";
+import express, { Request, Response } from 'express';
+import Redis, { Redis as RedisType } from "ioredis";
+import mongoose from 'mongoose';
 
 export interface WorkerConfig {
   name: string
@@ -12,32 +12,37 @@ export interface WorkerConfig {
   health_port: number
   mongodb_url?: string
   redis_url?: string
-  postSetup?: (deps: Dependencies) => Promise<void>
+  postSetup?: (context: Context) => Promise<void>
 }
 
-export interface Dependencies {
+export interface Context {
   logger: Logger
   redis?: RedisType
 }
 
 export interface Handler<T> {
-  (data: T, dependencies: Dependencies): Promise<void>
+  (data: T, context: Context): Promise<void>
 }
 
 /**
- * 
- * @param config 
- * @param parentLogger 
+ * Run a handler in this process using the WorkerConfig passed. A context will
+ * be created to give the handler access to resources(logging, redis).
+ * @param config worker configuration
  */
-export async function createWorker(parentLogger: Logger, config: WorkerConfig) {
+export async function createWorker(config: WorkerConfig) {
 
   let redis: RedisType
   let mongooseCon: MongooseNamespace
 
-  const logger = parentLogger.child({
-    infra_source: `${config.name}_worker`
+  const logger = createLogger({
+    name: config.name,
+    serializers: {
+      err: Logger.stdSerializers.err
+    }
   })
 
+
+  // setup event-bus
   // this is default on all workers
   await subscriber.init(config.amqp_url)
   await publisher.init(config.amqp_url)
@@ -72,13 +77,18 @@ export async function createWorker(parentLogger: Logger, config: WorkerConfig) {
     logger.info('🐳  Redis Connected!')
   }
 
-  // call user's code
-  await config.postSetup({
-    logger, redis
-  })
+  // call user's setup code
+  if (config.postSetup) {
+    await config.postSetup({
+      logger, redis
+    })
+  }
 
+  // create stop function. This adds 20 lines but has to be here due
+  // the dependencies
   const stop = async () => {
     try {
+      logger.info(`Shutting down ${config.name} worker`)
       await subscriber.close();
       await publisher.close();
 
@@ -92,7 +102,7 @@ export async function createWorker(parentLogger: Logger, config: WorkerConfig) {
         await httpServer.close();
 
     } catch (err) {
-      logger.error(err, 'An error occured while stopping Transaction worker');
+      logger.error(err, `An error occured while stopping ${config.name} worker`);
       process.exit(1);
     }
   }
@@ -104,15 +114,15 @@ export async function createWorker(parentLogger: Logger, config: WorkerConfig) {
   return stop
 }
 
-export function createHandler<T>(deps: Dependencies, handler: Handler<T>) {
+export function createHandler<T>(context: Context, handler: Handler<T>) {
   return async (message: ConsumeMessage) => {
     if (message === null) {
-      deps.logger.info('Consumer cancelled by server. Exiting process')
+      context.logger.info('Consumer cancelled by server. Exiting process')
       process.exit(1)
     }
 
     subscriber.acknowledgeMessage(message);
     const data = JSON.parse(message.content.toString());
-    await handler(data, deps)
+    await handler(data, context)
   }
 }

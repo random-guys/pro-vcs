@@ -1,42 +1,47 @@
-import { BaseRepository, ModelNotFoundError, DuplicateModelError } from "@random-guys/bucket";
-import { applyChange, diff } from "deep-diff";
+import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
+import { diff } from "deep-diff";
+import { PatcheableModel, PatchRepository } from "./patch";
 import { requestReview } from "./prohub-client";
-import { ReviewableModel, ReviewRequestRepository } from "./review-request";
 import { slugify } from "./string";
 
 
-export class ReviewPolicy<T extends ReviewableModel> {
+export class ReviewPolicy<T extends PatcheableModel> {
   private documentType: string
 
   constructor(
-    private requestRepo: ReviewRequestRepository,
+    private patchRepo: PatchRepository,
     private dataRepo: BaseRepository<T>
   ) {
     this.documentType = slugify(dataRepo.name)
   }
 
-  async create(user: string, attributes: any): Promise<T> {
-    // create the document in staged mode
-    const newModel = await this.dataRepo.create({
-      ...attributes,
-      frozen: true
+  async create(user: string, attributes: Partial<T>): Promise<T> {
+    // make sure frozen cannot be set
+    const { frozen, ...diffable } = attributes
+
+    // create document temporarily
+    const data = await this.dataRepo.create({
+      frozen: true,
+      ...diffable
     })
 
-    // make sure attributes doesn't contain frozen
-    const { _frozen, ...diffable } = attributes
-    // create a request
-    const request = await this.requestRepo.create({
-      reference: newModel.id,
+    // create patch for reference
+    const patch = await this.patchRepo.create({
+      reference: data.id,
       document_type: this.documentType,
-      creator: user,
+      owner: user,
       patchType: 'create',
-      diffs: diff(null, diffable)
+      payload: diffable
     })
 
-    // ask for review
-    await requestReview(request)
+    // ask for a review
+    await requestReview(patch)
 
-    return newModel
+    return data
+  }
+
+  async byQuery(query: object) {
+    return this.dataRepo.byQuery(query)
   }
 
   /**
@@ -44,7 +49,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
    * @param reference reference ID from source document
    */
   async getLatest(reference: string) {
-    const latest = await this.requestRepo.latestPatch(reference)
+    const latest = await this.patchRepo.byReference(reference)
     const current = await this.dataRepo.byID(reference)
 
     if (latest) {
@@ -55,18 +60,17 @@ export class ReviewPolicy<T extends ReviewableModel> {
 
       // there's nothing for you
       if (latest.patchType === 'delete') {
-        const modelName = this.dataRepo.name
-        throw new ModelNotFoundError(`${modelName} not found`)
+        throw new ModelNotFoundError(`${this.dataRepo.name} not found`)
       }
 
       // apply diff if patch is an update
-      if (latest.patchType === 'update') {
-        // note that mongoose will not allow deletes
-        // so those diffs will be ignored
-        latest.diffs.forEach((diff) => {
-          applyChange(current, {}, diff)
-        })
-      }
+      // if (latest.patchType === 'update') {
+      //   // note that mongoose will not allow deletes
+      //   // so those diffs will be ignored
+      //   latest.diffs.forEach((diff) => {
+      //     applyChange(current, {}, diff)
+      //   })
+      // }
     }
     return current
   }
@@ -86,7 +90,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
     const { frozen, ...diffable } = attributes
 
     // create a request
-    const request = await this.requestRepo.create({
+    const request = await this.patchRepo.create({
       reference: current.id,
       document_type: this.documentType,
       creator: user,
@@ -104,7 +108,7 @@ export class ReviewPolicy<T extends ReviewableModel> {
     const current = await this.dataRepo.atomicUpdate(query, { frozen: true })
 
     // create a request
-    const request = await this.requestRepo.create({
+    const request = await this.patchRepo.create({
       reference: current.id,
       document_type: this.documentType,
       creator: user,
