@@ -12,11 +12,3 @@ export function paths(data: any, result: string[], root = "") {
 function isLeaf(node: any) {
   return typeof node !== 'object' || node === null
 }
-
-export function hashTable(keys: string[]) {
-  const result = {}
-  for (const key of keys) {
-    result[key] = null
-  }
-  return result
-}

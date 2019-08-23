@@ -1,6 +1,6 @@
 import { BaseRepository, defaultMongoOpts, MongooseNamespace } from "@random-guys/bucket";
 import mongoose from "mongoose";
-import { User, mockEmptyUser } from "../mocks/user";
+import { User, mockEmptyUserEvent } from "../mocks/user";
 import { EventModel, EventSchema } from "../src";
 
 describe('Event Schema Rules', () => {
@@ -23,7 +23,7 @@ describe('Event Schema Rules', () => {
   })
 
   it('Should attach id and frozen for toObject', async () => {
-    const user = await dataRepo.create(mockEmptyUser())
+    const user = await dataRepo.create(mockEmptyUserEvent())
     const userObject = user.toObject()
 
     expect(userObject.id).toBe(user.metadata.reference)
@@ -35,7 +35,7 @@ describe('Event Schema Rules', () => {
   })
 
   it('Should attach id and frozen for toJSON', async () => {
-    const user = await dataRepo.create(mockEmptyUser())
+    const user = await dataRepo.create(mockEmptyUserEvent())
     const userObject = user.toJSON()
 
     expect(userObject.id).toBe(user.metadata.reference)
@@ -47,7 +47,7 @@ describe('Event Schema Rules', () => {
   })
 
   it('should have virtuals id and frozen', async () => {
-    const user = await dataRepo.create(mockEmptyUser())
+    const user = await dataRepo.create(mockEmptyUserEvent())
 
     expect(user.id).toBe(user.metadata.reference)
     expect(user.frozen).toBe(true)

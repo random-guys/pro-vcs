@@ -1,12 +1,16 @@
 export * from "./user.model";
 // export * from "./user.repo";
 
-export function mockEmptyUser() {
+export function mockEmptyUserEvent() {
   return {
     metadata: { owner: 'arewaolakunle' },
-    payload: {
-      fullname: 'Jasmine Joe',
-      email_address: 'jasming@gmail.com'
-    }
+    payload: mockUser()
+  }
+}
+
+export function mockUser() {
+  return {
+    fullname: 'Jasmine Joe',
+    email_address: 'jasming@gmail.com'
   }
 }

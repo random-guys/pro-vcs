@@ -1,8 +1,8 @@
 import { BaseRepository, ModelNotFoundError } from "@random-guys/bucket";
 import { diff } from "deep-diff";
-import { PatcheableModel, PatchRepository } from "./patch";
+import { PatcheableModel, PatchRepository } from "../patch";
 import { requestReview } from "./prohub-client";
-import { slugify } from "./string";
+import { slugify } from "../string.util";
 
 
 export class ReviewPolicy<T extends PatcheableModel> {
