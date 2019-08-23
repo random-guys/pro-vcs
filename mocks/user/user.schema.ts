@@ -1,7 +1,7 @@
 import { trimmedString } from "@random-guys/bucket";
-import { PatcheableSchema } from "../../src/";
+import { SchemaDefinition } from "mongoose";
 
-export const UserSchema = PatcheableSchema({
+export const UserSchema: SchemaDefinition = {
   fullname: { ...trimmedString, required: true, index: true },
   email_address: { ...trimmedString, required: true, unique: true }
-})
+}
