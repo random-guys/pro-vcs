@@ -2,6 +2,7 @@ import { defaultMongoOpts, MongooseNamespace } from '@random-guys/bucket';
 import mongoose from 'mongoose';
 import { mockUser, User } from '../mocks/user';
 import { EventRepository } from '../src';
+import { EventType } from '../src/event.model'; // test couldn't detect eventType from outside
 
 describe('Event Schema Rules', () => {
   let mongooseNs: MongooseNamespace;
@@ -24,7 +25,8 @@ describe('Event Schema Rules', () => {
   it('Should add create metadata to a new event', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser());
 
-    expect(user.metadata.action).toBe('create');
+    expect(user.metadata.eventType).toBe(EventType.created);
+    expect(user.metadata.owner).toBe('arewaolakunle');
 
     // cleanup afterwards
     await user.remove();

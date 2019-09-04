@@ -12,7 +12,3 @@ export function paths(data: any, result: string[], root = '') {
 function isLeaf(node: any) {
   return typeof node !== 'object' || node === null;
 }
-
-export function pairs(data: object) {
-  // const keys =
-}

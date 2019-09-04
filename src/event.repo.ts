@@ -1,5 +1,5 @@
 import { BaseRepository, MongooseNamespace } from '@random-guys/bucket';
-import { EventModel } from './event.model';
+import { EventModel, EventType } from './event.model';
 import { EventSchema } from './event.schema';
 
 export class EventRepository<T> {
@@ -18,7 +18,7 @@ export class EventRepository<T> {
 
   create(owner: string, event: Partial<T>) {
     return this.internalRepo.create({
-      metadata: { owner, action: 'create' },
+      metadata: { owner, eventType: EventType.created },
       payload: event
     });
   }
