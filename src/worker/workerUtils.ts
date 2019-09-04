@@ -1,7 +1,11 @@
-import Logger from "bunyan";
-import { createWorker, Context, Handler, createHandler } from "./bootstrap";
 import { subscriber } from "@random-guys/eventbus";
-import { slugify } from "../../string.util";
+import { slugify } from "../string.util";
+import {
+  Context,
+  createHandler,
+  createWorker,
+  Handler
+} from "./bootstrap";
 
 export interface PostApprovalWorkerConfig {
   service: string
