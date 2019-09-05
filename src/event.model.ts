@@ -1,5 +1,4 @@
 import { Model } from '@random-guys/bucket';
-import { Diff } from 'deep-diff';
 
 export enum EventType {
   created = 'created',
@@ -8,7 +7,7 @@ export enum EventType {
   approved = 'approved'
 }
 
-export type Payload<T> = T | Diff<any>[];
+export type Payload<T> = T | Partial<T>;
 
 export interface EventModel<T> extends Model {
   frozen: boolean;
