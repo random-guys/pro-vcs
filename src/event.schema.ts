@@ -48,6 +48,7 @@ export const EventSchema = <T>(
 
   const schema = new Schema(
     {
+      _id: uuid,
       metadata: MetadateSchema,
       payload: { type: SchemaTypes.Mixed, default: null }
     },
