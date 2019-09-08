@@ -50,10 +50,15 @@ export class EventRepository<T extends PayloadModel> {
     });
   }
 
-  get(user: string, reference: string) {
-    return this.internalRepo.byQuery({
-      'metadata.reference': reference
+  async get(user: string, reference: string) {
+    const maybePending = await this.internalRepo.byQuery({
+      'metadata.reference': reference,
+      $nor: [
+        { 'metadata.owner': user, 'metadata.objectState': ObjectState.frozen }
+      ]
     });
+
+    return this.onCreate(user, maybePending);
   }
 
   protected getRelatedEvents(reference: string) {
@@ -176,26 +181,40 @@ export class EventRepository<T extends PayloadModel> {
       metadata: {
         owner: user,
         reference: stable.id,
-        eventType: EventType.updated
+        objectState: ObjectState.updated
       },
-      payload: update
+      payload: mongoSet(stable.payload, update)
     });
   }
 
   protected newDelete(user: string, stable: EventModel<T>, reference: string) {
     // mark object as frozen
     this.internalRepo.atomicUpdate(stable._id, {
-      $set: { 'metadata.frozen': true }
+      $set: {
+        'metadata.objectState': ObjectState.frozen,
+        'metadata.owner': user
+      }
     });
 
     // create a new event to signify delete
     return this.internalRepo.create({
       metadata: {
         owner: user,
-        eventType: EventType.deleted,
+        objectState: ObjectState.deleted,
         reference
-      }
+      },
+      payload: stable.payload
     });
+  }
+
+  private onCreate(user: string, maybePending: EventModel<T>) {
+    if (
+      maybePending.metadata.objectState === ObjectState.created &&
+      maybePending.metadata.owner !== user
+    ) {
+      maybePending.metadata.objectState = ObjectState.frozen;
+    }
+    return maybePending;
   }
 
   private payload(data: object) {
