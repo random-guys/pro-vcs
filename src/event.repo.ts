@@ -141,6 +141,41 @@ export class EventRepository<T extends PayloadModel> {
     }
   }
 
+  async merge(reference: string) {
+    const [stable, pending] = await this.getRelatedEvents(reference);
+    if (pending) {
+      switch (pending.metadata.objectState) {
+        case ObjectState.updated:
+          await stable.remove();
+          return await this.stabilise(pending._id);
+        case ObjectState.deleted:
+          return this.internalRepo.destroy({
+            'metadata.reference': reference
+          });
+        default:
+          throw new InconsistentState();
+      }
+    }
+
+    switch (stable.metadata.objectState) {
+      case ObjectState.created:
+        return await this.stabilise(stable._id);
+      case ObjectState.stable:
+        return stable;
+      default:
+        throw new InconsistentState();
+    }
+  }
+
+  protected stabilise(id: string) {
+    return this.internalRepo.atomicUpdate(id, {
+      $set: {
+        'metadata.objectState': ObjectState.stable,
+        'metadata.owner': null
+      }
+    });
+  }
+
   protected inplaceUpdate(
     user: string,
     oldUpdate: EventModel<T>,
