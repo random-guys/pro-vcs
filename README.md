@@ -4,8 +4,10 @@ Simple description here
 
 ## How to install?
 
-
 ## How does it work?
 
 ## TODO
-[ ] More tests
+
+[ ] Analysis for possible concurrency bugs
+[ ] Split test files(specifically `event.repo.ts`)
+[ ] Invaariant Tests

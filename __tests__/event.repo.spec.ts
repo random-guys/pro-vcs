@@ -1,8 +1,14 @@
 import { defaultMongoOpts, MongooseNamespace } from '@random-guys/bucket';
 import mongoose from 'mongoose';
-import { mockUser, User } from '../mocks/user';
+import {
+  mockUser,
+  User,
+  mockApprovedUser,
+  mockFrozenUser
+} from '../mocks/user';
 import { EventRepository } from '../src';
 import { EventType } from '../src/event.model'; // test couldn't detect eventType from outside
+import { mockUnapprovedUpdate } from '../mocks/user/index';
 
 describe('Event Schema Rules', () => {
   let mongooseNs: MongooseNamespace;
@@ -43,12 +49,9 @@ describe('Event Schema Rules', () => {
   });
 
   it('Should create a new update event', async () => {
-    const user = await dataRepo.create('arewaolakunle', mockUser());
-    // approve the document
-    dataRepo.internalRepo.atomicUpdate(user._id, {
-      'metadata.eventType': EventType.approved,
-      'metadata.frozen': false
-    });
+    const user = await dataRepo.internalRepo.create(
+      mockApprovedUser('arewaolakunle')
+    );
 
     const userUpdate = await dataRepo.update('arewaolakunle', user.id, {
       email_address: 'nope@gmail.com'
@@ -77,9 +80,73 @@ describe('Event Schema Rules', () => {
     expect(userUpdate.metadata.owner).toBe('arewaolakunle');
     expect(userUpdate.payload.email_address).toBe('nope@gmail.com');
 
-    // cleanup afterwards
-    await userUpdate.remove();
+    await user.remove();
+  });
 
+  it('Should undo a pending update', async () => {
+    const user = await dataRepo.internalRepo.create(
+      mockFrozenUser('arewaolakunle')
+    );
+    await dataRepo.internalRepo.create(
+      mockUnapprovedUpdate('arewaolakunle', user.id, 'nope@gmail.com')
+    );
+
+    const userUpdate = await dataRepo.delete('arewaolakunle', user.id);
+
+    expect(userUpdate.id).toBe(user.id);
+    expect(userUpdate.metadata.eventType).toBe(EventType.updated);
+    expect(userUpdate.metadata.owner).toBe('arewaolakunle');
+    expect(userUpdate.payload.email_address).toBe('nope@gmail.com');
+
+    await user.remove();
+  });
+
+  it('Should undo a pending delete', async () => {
+    const user = await dataRepo.internalRepo.create(
+      mockApprovedUser('arewaolakunle')
+    );
+    const userDelete = await dataRepo.delete('arewaolakunle', user.id);
+    const removedDelete = await dataRepo.delete('arewaolakunle', user.id);
+    const refs = await dataRepo.internalRepo.all({
+      conditions: {
+        'metadata.reference': user.id
+      }
+    });
+
+    expect(userDelete._id).toBe(removedDelete._id);
+    expect(removedDelete.metadata.eventType).toBe(EventType.deleted);
+    expect(refs.length).toBe(1);
+    expect(refs[0].metadata.eventType).toBe(EventType.approved);
+
+    await user.remove();
+  });
+
+  it('Should delete a pending create', async () => {
+    const user = await dataRepo.create('arewaolakunle', mockUser());
+    const event = await dataRepo.delete('arewaolakunle', user.id);
+    const loadedUser = await dataRepo.internalRepo.byID(user._id, null, false);
+
+    expect(event._id).toBe(user._id);
+    expect(event.metadata.eventType).toBe(EventType.created);
+    expect(event.metadata.owner).toBe('arewaolakunle');
+    expect(loadedUser).toBeNull();
+
+    await user.remove();
+  });
+
+  it('Should create a delete event', async () => {
+    const user = await dataRepo.internalRepo.create(
+      mockApprovedUser('arewaolakunle')
+    );
+    const userDelete = await dataRepo.delete('arewaolakunle', user.id);
+    const loadedUser = await dataRepo.internalRepo.byID(user._id);
+
+    expect(userDelete.id).toBe(user.id);
+    expect(userDelete.metadata.eventType).toBe(EventType.deleted);
+    expect(userDelete.metadata.owner).toBe('arewaolakunle');
+    expect(loadedUser.frozen).toBe(true);
+
+    await userDelete.remove();
     await user.remove();
   });
 });

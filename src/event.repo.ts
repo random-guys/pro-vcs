@@ -90,6 +90,28 @@ export class EventRepository<T> {
     }
   }
 
+  async delete(user: string, reference: string) {
+    const [stable, pending] = await this.getRelatedEvents(reference);
+    if (pending) {
+      switch (pending.metadata.eventType) {
+        case EventType.updated:
+        case EventType.deleted:
+          return await pending.remove();
+        default:
+          throw new InconsistentState();
+      }
+    }
+
+    switch (stable.metadata.eventType) {
+      case EventType.created:
+        return await stable.remove();
+      case EventType.approved:
+        return await this.newDelete(user, stable, reference);
+      default:
+        throw new InconsistentState();
+    }
+  }
+
   protected inplaceUpdate(
     user: string,
     oldUpdate: EventModel<T>,
@@ -120,6 +142,22 @@ export class EventRepository<T> {
         eventType: EventType.updated
       },
       payload: update
+    });
+  }
+
+  protected newDelete(user: string, stable: EventModel<T>, reference: string) {
+    // mark object as frozen
+    this.internalRepo.atomicUpdate(stable._id, {
+      $set: { 'metadata.frozen': true }
+    });
+
+    // create a new event to signify delete
+    return this.internalRepo.create({
+      metadata: {
+        owner: user,
+        eventType: EventType.deleted,
+        reference
+      }
     });
   }
 
