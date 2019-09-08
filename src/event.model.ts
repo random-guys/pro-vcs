@@ -7,9 +7,23 @@ export enum EventType {
   approved = 'approved'
 }
 
-export type Payload<T> = T | Partial<T>;
+export enum Stage {
+  stable = 'stable',
+  frozen = 'frozen',
+  staged = 'staged',
+  removed = 'removed'
+}
 
-export interface EventModel<T> extends Model {
+export type Payload<T extends PayloadModel> = T | Partial<T>;
+
+export interface PayloadModel {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  stage: Stage;
+}
+
+export interface EventModel<T extends PayloadModel> extends Model {
   frozen: boolean;
   metadata: Metadata;
   payload?: Payload<T>;
@@ -17,7 +31,8 @@ export interface EventModel<T> extends Model {
 
 export interface Metadata {
   reference: string;
-  owner: string;
+  owner?: string;
   frozen: boolean;
+  stage: Stage;
   eventType: EventType;
 }

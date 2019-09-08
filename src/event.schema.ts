@@ -5,16 +5,16 @@ import {
   uuid
 } from '@random-guys/bucket';
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from 'mongoose';
-import { EventModel, EventType } from './event.model';
+import { EventModel, EventType, Stage, PayloadModel } from './event.model';
 import { mapperConfig } from './schema.util';
 
 const eventVirtuals = {
-  frozen<T>(schema: Schema) {
+  frozen<T extends PayloadModel>(schema: Schema) {
     schema.virtual('frozen').get(function(this: EventModel<T>) {
       return this.metadata.frozen;
     });
   },
-  id<T>(schema: Schema) {
+  id<T extends PayloadModel>(schema: Schema) {
     schema.virtual('id').get(function(this: EventModel<T>) {
       return this.metadata.reference;
     });
@@ -25,6 +25,11 @@ export const MetadateSchema: SchemaDefinition = {
   reference: { ...uuid, index: true },
   owner: { ...trimmedString, required: true, index: true },
   frozen: { type: SchemaTypes.Boolean, default: true },
+  stage: {
+    ...trimmedLowercaseString,
+    required: true,
+    enum: Object.keys(Stage)
+  },
   eventType: {
     ...trimmedLowercaseString,
     required: true,
@@ -32,7 +37,7 @@ export const MetadateSchema: SchemaDefinition = {
   }
 };
 
-export const EventSchema = <T>(
+export const EventSchema = <T extends PayloadModel>(
   exclude: string[] = [],
   options?: SchemaOptions
 ) => {

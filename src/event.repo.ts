@@ -1,26 +1,34 @@
 import {
   BaseRepository,
-  MongooseNamespace,
-  ModelNotFoundError
+  ModelNotFoundError,
+  MongooseNamespace
 } from '@random-guys/bucket';
-import { EventModel, EventType } from './event.model';
-import { EventSchema } from './event.schema';
-import startCase from 'lodash/startCase';
 import mapKeys from 'lodash/mapKeys';
+import startCase from 'lodash/startCase';
+import { EventModel, EventType, PayloadModel } from './event.model';
+import { EventSchema } from './event.schema';
 
+/**
+ * This error is usually thrown when a user tries
+ * to perform an operation on a frozen payload
+ */
 export class InvalidOperation extends Error {
   constructor(message: string) {
     super(message);
   }
 }
 
+/**
+ * This should only be throw if invariants are not properly
+ * enforced, or possible concurrency issues.
+ */
 export class InconsistentState extends Error {
   constructor() {
     super('The database is in an inconsistent state. Please resolve');
   }
 }
 
-export class EventRepository<T> {
+export class EventRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<EventModel<T>>;
   constructor(
     mongoose: MongooseNamespace,
