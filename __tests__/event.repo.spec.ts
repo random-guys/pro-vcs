@@ -162,4 +162,20 @@ describe('ProVCS Repo Constraints', () => {
     expect(loadedUser._id).toBe(user._id);
     await user.remove();
   });
+
+  it('Should return the all approved users', async () => {
+    await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.internalRepo.create(mockApprovedUser());
+    const users = await dataRepo.all('arewaolakunle', {
+      conditions: {
+        fullname: 'Jasmine Joe'
+      }
+    });
+
+    expect(users.length).toBe(3);
+    await dataRepo.internalRepo.destroy({
+      'payload.fullname': 'Jasmine Joe'
+    });
+  });
 });

@@ -1,7 +1,8 @@
 import {
   BaseRepository,
   ModelNotFoundError,
-  MongooseNamespace
+  MongooseNamespace,
+  Query
 } from '@random-guys/bucket';
 import mapKeys from 'lodash/mapKeys';
 import startCase from 'lodash/startCase';
@@ -62,14 +63,17 @@ export class EventRepository<T extends PayloadModel> {
   }
 
   async byQuery(user: string, query: any) {
-    const maybePending = await this.internalRepo.byQuery({
-      ...this.payload(query),
-      $nor: [
-        { 'metadata.owner': user, 'metadata.objectState': ObjectState.frozen }
-      ]
-    });
+    const maybePending = await this.internalRepo.byQuery(
+      this.getQuery(user, query)
+    );
 
     return this.onCreate(user, maybePending);
+  }
+
+  async all(user: string, query: Query) {
+    query.conditions = this.getQuery(user, query.conditions);
+    const maybes = await this.internalRepo.all(query);
+    return maybes.map(e => this.onCreate(user, e));
   }
 
   protected getRelatedEvents(reference: string) {
@@ -218,7 +222,7 @@ export class EventRepository<T extends PayloadModel> {
     });
   }
 
-  private onCreate(user: string, maybePending: EventModel<T>) {
+  protected onCreate(user: string, maybePending: EventModel<T>) {
     if (
       maybePending.metadata.objectState === ObjectState.created &&
       maybePending.metadata.owner !== user
@@ -228,7 +232,19 @@ export class EventRepository<T extends PayloadModel> {
     return maybePending;
   }
 
-  private payload(data: object) {
+  protected getQuery(user: string, query: any) {
+    return {
+      ...this.payload(query),
+      $nor: [
+        {
+          'metadata.owner': user,
+          'metadata.objectState': ObjectState.frozen
+        }
+      ]
+    };
+  }
+
+  protected payload(data: object) {
     return mapKeys(data, (_v, k) => {
       return `payload.${k}`;
     });
