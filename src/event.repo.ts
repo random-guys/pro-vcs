@@ -5,8 +5,9 @@ import {
 } from '@random-guys/bucket';
 import mapKeys from 'lodash/mapKeys';
 import startCase from 'lodash/startCase';
-import { EventModel, EventType, PayloadModel } from './event.model';
+import { EventModel, ObjectState, PayloadModel } from './event.model';
 import { EventSchema } from './event.schema';
+import { mongoSet } from './object.util';
 
 /**
  * This error is usually thrown when a user tries
@@ -44,7 +45,7 @@ export class EventRepository<T extends PayloadModel> {
 
   create(owner: string, event: Partial<T>) {
     return this.internalRepo.create({
-      metadata: { owner, eventType: EventType.created },
+      metadata: { owner, objectState: ObjectState.created },
       payload: event
     });
   }
@@ -76,10 +77,10 @@ export class EventRepository<T extends PayloadModel> {
   async update(user: string, reference: string, update: Partial<T>) {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
-      switch (pending.metadata.eventType) {
-        case EventType.updated:
+      switch (pending.metadata.objectState) {
+        case ObjectState.updated:
           return this.inplaceUpdate(user, pending, update);
-        case EventType.deleted:
+        case ObjectState.deleted:
           throw new InvalidOperation(
             "Can't update an item up that's is to be deleted"
           );
@@ -88,10 +89,10 @@ export class EventRepository<T extends PayloadModel> {
       }
     }
 
-    switch (stable.metadata.eventType) {
-      case EventType.created:
+    switch (stable.metadata.objectState) {
+      case ObjectState.created:
         return this.inplaceUpdate(user, stable, update);
-      case EventType.approved:
+      case ObjectState.stable:
         return this.newUpdate(user, stable, update);
       default:
         throw new InconsistentState();
@@ -101,19 +102,19 @@ export class EventRepository<T extends PayloadModel> {
   async delete(user: string, reference: string) {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
-      switch (pending.metadata.eventType) {
-        case EventType.updated:
-        case EventType.deleted:
-          return await pending.remove();
+      switch (pending.metadata.objectState) {
+        case ObjectState.updated:
+        case ObjectState.deleted:
+          return await this.inplaceDelete(user, pending, stable._id);
         default:
           throw new InconsistentState();
       }
     }
 
-    switch (stable.metadata.eventType) {
-      case EventType.created:
-        return await stable.remove();
-      case EventType.approved:
+    switch (stable.metadata.objectState) {
+      case ObjectState.created:
+        return await this.inplaceDelete(user, stable);
+      case ObjectState.stable:
         return await this.newDelete(user, stable, reference);
       default:
         throw new InconsistentState();
@@ -136,10 +137,38 @@ export class EventRepository<T extends PayloadModel> {
     );
   }
 
+  protected inplaceDelete(
+    user: string,
+    pending: EventModel<T>,
+    stableId?: string
+  ) {
+    if (pending.metadata.owner !== user) {
+      throw new InvalidOperation(
+        `Can't update an unapproved ${startCase(this.internalRepo.name)}`
+      );
+    }
+
+    if (stableId) {
+      // unfreeze stable version
+      this.internalRepo.atomicUpdate(stableId, {
+        $set: {
+          'metadata.objectState': ObjectState.stable,
+          'metadata.owner': null
+        }
+      });
+    }
+
+    // cleanup pending version
+    return pending.remove();
+  }
+
   protected newUpdate(user: string, stable: EventModel<T>, update: Partial<T>) {
     // mark object as frozen
     this.internalRepo.atomicUpdate(stable._id, {
-      $set: { 'metadata.frozen': true }
+      $set: {
+        'metadata.objectState': ObjectState.frozen,
+        'metadata.owner': user
+      }
     });
 
     // create a new patch to be applied once approved

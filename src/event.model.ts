@@ -1,38 +1,28 @@
 import { Model } from '@random-guys/bucket';
 
-export enum EventType {
+export enum ObjectState {
   created = 'created',
   updated = 'updated',
   deleted = 'deleted',
-  approved = 'approved'
-}
-
-export enum Stage {
-  stable = 'stable',
   frozen = 'frozen',
-  staged = 'staged',
-  removed = 'removed'
+  stable = 'stable'
 }
-
-export type Payload<T extends PayloadModel> = T | Partial<T>;
 
 export interface PayloadModel {
   id: string;
   created_at: Date;
   updated_at: Date;
-  stage: Stage;
+  object_state: ObjectState;
 }
 
 export interface EventModel<T extends PayloadModel> extends Model {
-  frozen: boolean;
+  object_state: ObjectState;
   metadata: Metadata;
-  payload?: Payload<T>;
+  payload: T;
 }
 
 export interface Metadata {
   reference: string;
   owner?: string;
-  frozen: boolean;
-  stage: Stage;
-  eventType: EventType;
+  objectState: ObjectState;
 }

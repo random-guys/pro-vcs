@@ -5,7 +5,7 @@ import {
 } from '@random-guys/bucket';
 import mongoose from 'mongoose';
 import { User, mockEmptyUserEvent } from '../mocks/user';
-import { EventModel, EventSchema } from '../src';
+import { EventModel, EventSchema, ObjectState } from '../src';
 
 describe('Event Schema Rules', () => {
   let mongooseNs: MongooseNamespace;
@@ -30,7 +30,7 @@ describe('Event Schema Rules', () => {
     const userObject = user.toObject();
 
     expect(userObject.id).toBe(user.metadata.reference);
-    expect(userObject.frozen).toBe(user.metadata.frozen);
+    expect(userObject.object_state).toBe(user.metadata.objectState);
     expect(userObject.fullname).toBe((<User>user.payload).fullname);
     expect(userObject.created_at).toStrictEqual(user.created_at);
     expect(userObject.updated_at).toStrictEqual(user.updated_at);
@@ -44,7 +44,7 @@ describe('Event Schema Rules', () => {
     const userObject = user.toJSON();
 
     expect(userObject.id).toBe(user.metadata.reference);
-    expect(userObject.frozen).toBe(user.metadata.frozen);
+    expect(userObject.object_state).toBe(user.metadata.objectState);
     expect(userObject.fullname).toBe((<User>user.payload).fullname);
     expect(userObject.created_at).toStrictEqual(user.created_at);
     expect(userObject.updated_at).toStrictEqual(user.updated_at);
@@ -57,7 +57,7 @@ describe('Event Schema Rules', () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
 
     expect(user.id).toBe(user.metadata.reference);
-    expect(user.frozen).toBe(true);
+    expect(user.object_state).toBe(ObjectState.created);
 
     // cleanup afterwards
     await user.remove();

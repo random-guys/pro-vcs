@@ -1,25 +1,26 @@
-import { EventType } from '../../src/event.model';
+import { ObjectState } from '../../src/event.model';
 export * from './user.model';
 // export * from "./user.repo";
 
 export function mockEmptyUserEvent() {
   return {
-    metadata: { owner: 'arewaolakunle', eventType: EventType.created },
+    metadata: { owner: 'arewaolakunle', objectState: ObjectState.created },
     payload: mockUser()
   };
 }
 
-export function mockApprovedUser(owner: string) {
+export function mockApprovedUser() {
   return {
-    metadata: { owner, eventType: EventType.approved, frozen: false },
+    metadata: { objectState: ObjectState.stable },
     payload: mockUser()
   };
 }
 
 export function mockFrozenUser(owner: string) {
-  const user = mockApprovedUser(owner);
-  user.metadata.frozen = true;
-  return user;
+  return {
+    metadata: { objectState: ObjectState.frozen, owner },
+    payload: mockUser()
+  };
 }
 
 export function mockUnapprovedUpdate(
@@ -28,16 +29,14 @@ export function mockUnapprovedUpdate(
   email: string
 ) {
   return {
-    metadata: { owner, eventType: EventType.updated, reference },
-    payload: {
-      email_address: email
-    }
+    metadata: { owner, objectState: ObjectState.updated, reference },
+    payload: mockUser(email)
   };
 }
 
-export function mockUser() {
+export function mockUser(email = 'jasming@gmail.com') {
   return {
     fullname: 'Jasmine Joe',
-    email_address: 'jasming@gmail.com'
+    email_address: email
   };
 }

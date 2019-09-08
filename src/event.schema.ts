@@ -5,13 +5,13 @@ import {
   uuid
 } from '@random-guys/bucket';
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from 'mongoose';
-import { EventModel, EventType, Stage, PayloadModel } from './event.model';
+import { EventModel, ObjectState, PayloadModel } from './event.model';
 import { mapperConfig } from './schema.util';
 
 const eventVirtuals = {
-  frozen<T extends PayloadModel>(schema: Schema) {
-    schema.virtual('frozen').get(function(this: EventModel<T>) {
-      return this.metadata.frozen;
+  state<T extends PayloadModel>(schema: Schema) {
+    schema.virtual('object_state').get(function(this: EventModel<T>) {
+      return this.metadata.objectState;
     });
   },
   id<T extends PayloadModel>(schema: Schema) {
@@ -23,17 +23,11 @@ const eventVirtuals = {
 
 export const MetadateSchema: SchemaDefinition = {
   reference: { ...uuid, index: true },
-  owner: { ...trimmedString, required: true, index: true },
-  frozen: { type: SchemaTypes.Boolean, default: true },
-  stage: {
+  owner: { ...trimmedString, index: true },
+  objectState: {
     ...trimmedLowercaseString,
     required: true,
-    enum: Object.keys(Stage)
-  },
-  eventType: {
-    ...trimmedLowercaseString,
-    required: true,
-    enum: Object.keys(EventType)
+    enum: Object.keys(ObjectState)
   }
 };
 
@@ -43,9 +37,9 @@ export const EventSchema = <T extends PayloadModel>(
 ) => {
   // make sure to remove any trace of metadata
   const mapper = mapperConfig<EventModel<T>>(exclude, data => {
-    const payload: any = data.payload || {};
+    const payload = data.payload;
     payload.id = data.metadata.reference;
-    payload.frozen = data.metadata.frozen;
+    payload.object_state = data.metadata.objectState;
     payload.created_at = data.created_at;
     payload.updated_at = data.updated_at;
     return payload;
@@ -55,7 +49,7 @@ export const EventSchema = <T extends PayloadModel>(
     {
       _id: uuid,
       metadata: MetadateSchema,
-      payload: { type: SchemaTypes.Mixed, default: null }
+      payload: { type: SchemaTypes.Mixed, required: true }
     },
     {
       ...options,
@@ -69,7 +63,7 @@ export const EventSchema = <T extends PayloadModel>(
 
   // enable payload virtuals
   eventVirtuals.id(schema);
-  eventVirtuals.frozen(schema);
+  eventVirtuals.state(schema);
 
   return schema;
 };

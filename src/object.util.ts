@@ -1,3 +1,5 @@
+import lodashSet from 'lodash/set';
+
 export function paths(data: any, result: string[], root = '') {
   if (isLeaf(data)) {
     return result.push(root);
@@ -11,4 +13,11 @@ export function paths(data: any, result: string[], root = '') {
 
 function isLeaf(node: any) {
   return typeof node !== 'object' || node === null;
+}
+
+export function mongoSet(data: any, $set: object) {
+  Object.keys($set).forEach(k => {
+    lodashSet(data, k, $set[k]);
+  });
+  return data;
 }
