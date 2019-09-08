@@ -61,6 +61,17 @@ export class EventRepository<T extends PayloadModel> {
     return this.onCreate(user, maybePending);
   }
 
+  async byQuery(user: string, query: any) {
+    const maybePending = await this.internalRepo.byQuery({
+      ...this.payload(query),
+      $nor: [
+        { 'metadata.owner': user, 'metadata.objectState': ObjectState.frozen }
+      ]
+    });
+
+    return this.onCreate(user, maybePending);
+  }
+
   protected getRelatedEvents(reference: string) {
     return new Promise<EventModel<T>[]>((resolve, reject) => {
       this.internalRepo.model

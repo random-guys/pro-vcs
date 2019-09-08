@@ -152,4 +152,14 @@ describe('ProVCS Repo Constraints', () => {
 
     await user.remove();
   });
+
+  it('Should return the am approved user', async () => {
+    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const loadedUser = await dataRepo.byQuery('arewaolakunle', {
+      fullname: 'Jasmine Joe'
+    });
+
+    expect(loadedUser._id).toBe(user._id);
+    await user.remove();
+  });
 });
