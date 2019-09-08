@@ -9,10 +9,10 @@ export function mockEmptyUserEvent() {
   };
 }
 
-export function mockApprovedUser() {
+export function mockApprovedUser(email = 'jasming@gmail.com') {
   return {
     metadata: { objectState: ObjectState.stable },
-    payload: mockUser()
+    payload: mockUser(email)
   };
 }
 

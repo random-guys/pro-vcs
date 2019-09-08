@@ -70,7 +70,7 @@ export class EventRepository<T extends PayloadModel> {
     return this.onCreate(user, maybePending);
   }
 
-  async all(user: string, query: Query) {
+  async all(user: string, query: Query = {}) {
     query.conditions = this.getQuery(user, query.conditions);
     const maybes = await this.internalRepo.all(query);
     return maybes.map(e => this.onCreate(user, e));
@@ -235,10 +235,17 @@ export class EventRepository<T extends PayloadModel> {
   protected getQuery(user: string, query: any) {
     return {
       ...this.payload(query),
-      $nor: [
+      $or: [
         {
           'metadata.owner': user,
+          'metadata.objectState': { $ne: ObjectState.frozen }
+        },
+        {
+          'metadata.owner': { $ne: user },
           'metadata.objectState': ObjectState.frozen
+        },
+        {
+          'metadata.objectState': ObjectState.stable
         }
       ]
     };

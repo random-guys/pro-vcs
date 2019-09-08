@@ -174,8 +174,35 @@ describe('ProVCS Repo Constraints', () => {
     });
 
     expect(users.length).toBe(3);
-    await dataRepo.internalRepo.destroy({
-      'payload.fullname': 'Jasmine Joe'
+    await dataRepo.internalRepo.model.deleteMany({}).exec();
+  });
+
+  it('Should return users based on who asked', async () => {
+    const nok = await dataRepo.internalRepo.create(
+      mockApprovedUser('nok@ru.com')
+    );
+    const looj = await dataRepo.internalRepo.create(
+      mockApprovedUser('looj@rx.com')
+    );
+
+    await dataRepo.update('arewaolakunle', nok.id, { fullname: 'Wakanda' });
+    await dataRepo.update('chudioranu', looj.id, { fullname: 'Is Stupid' });
+
+    const aUsers = await dataRepo.all('arewaolakunle');
+    const cUsers = await dataRepo.all('chudioranu');
+
+    expect(aUsers.length).toBe(2);
+    expect(cUsers.length).toBe(2);
+
+    const aUser = await dataRepo.all('chudioranu', {
+      conditions: {
+        fullname: 'Is Stupid'
+      }
     });
+    expect(aUser.length).toBe(1);
+    expect(aUser[0].metadata.objectState).toBe(ObjectState.updated);
+    expect(aUser[0].payload.email_address).toBe('looj@rx.com');
+
+    await dataRepo.internalRepo.model.deleteMany({}).exec();
   });
 });
