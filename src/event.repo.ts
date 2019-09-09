@@ -84,8 +84,8 @@ export class EventRepository<T extends PayloadModel> {
     return this.onCreate(user, maybePending);
   }
 
-  async all(user: string, query: Query = {}) {
-    query.conditions = this.getQuery(user, query.conditions);
+  async all(user: string, query: Query = {}, allowNew = true) {
+    query.conditions = this.getQuery(user, query.conditions, allowNew);
     const maybes = await this.internalRepo.all(query);
     return maybes.map(e => this.onCreate(user, e));
   }
@@ -281,22 +281,26 @@ export class EventRepository<T extends PayloadModel> {
     return maybePending;
   }
 
-  protected getQuery(user: string, query: any) {
+  protected getQuery(user: string, query: any, allowNew = true) {
+    const orQuery = [
+      {
+        'metadata.owner': user,
+        'metadata.objectState': { $ne: ObjectState.frozen }
+      },
+      {
+        'metadata.owner': { $ne: user },
+        'metadata.objectState': ObjectState.frozen
+      },
+      {
+        'metadata.objectState': ObjectState.stable
+      }
+    ];
+    if (allowNew) {
+      orQuery.push({ 'metadata.objectState': ObjectState.created });
+    }
     return {
       ...this.payload(query),
-      $or: [
-        {
-          'metadata.owner': user,
-          'metadata.objectState': { $ne: ObjectState.frozen }
-        },
-        {
-          'metadata.owner': { $ne: user },
-          'metadata.objectState': ObjectState.frozen
-        },
-        {
-          'metadata.objectState': ObjectState.stable
-        }
-      ]
+      $or: orQuery
     };
   }
 
