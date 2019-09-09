@@ -10,6 +10,7 @@ import startCase from 'lodash/startCase';
 import { EventModel, ObjectState, PayloadModel } from './event.model';
 import { EventSchema } from './event.schema';
 import { mongoSet } from './object.util';
+import { HubProxy } from './hub.proxy';
 
 /**
  * This error is usually thrown when a user tries
@@ -33,6 +34,7 @@ export class InconsistentState extends Error {
 
 export class EventRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<EventModel<T>>;
+  private hub: HubProxy<T>;
   constructor(
     mongoose: MongooseNamespace,
     name: string,
@@ -43,13 +45,18 @@ export class EventRepository<T extends PayloadModel> {
       name,
       EventSchema(exclude)
     );
+    this.hub = new HubProxy(name);
   }
 
-  create(owner: string, event: Partial<T>) {
-    return this.internalRepo.create({
+  async create(owner: string, event: Partial<T>) {
+    const newObject = await this.internalRepo.create({
       metadata: { owner, objectState: ObjectState.created },
       payload: event
     });
+    this.hub.create(newObject.id, newObject.object_state, {
+      payload: newObject.payload
+    });
+    return newObject;
   }
 
   async assertExists(query: object) {
@@ -113,21 +120,31 @@ export class EventRepository<T extends PayloadModel> {
     if (pending) {
       switch (pending.metadata.objectState) {
         case ObjectState.updated:
-          return this.inplaceUpdate(user, pending, update);
+          const patch = await this.inplaceUpdate(user, pending, update);
+          await this.hub.patch(reference, patch.payload);
+          return patch;
         case ObjectState.deleted:
           throw new InvalidOperation(
-            "Can't update an item up that's is to be deleted"
+            "Can't update an item up that is to be deleted"
           );
         default:
           throw new InconsistentState();
       }
     }
 
+    let patch: EventModel<T>;
     switch (stable.metadata.objectState) {
       case ObjectState.created:
-        return this.inplaceUpdate(user, stable, update);
+        patch = await this.inplaceUpdate(user, stable, update);
+        await this.hub.patch(reference, patch.payload);
+        return patch;
       case ObjectState.stable:
-        return this.newUpdate(user, stable, update);
+        patch = await this.newUpdate(user, stable, update);
+        await this.hub.create(reference, patch.object_state, {
+          stale_payload: stable.payload,
+          fresh_payload: patch.payload
+        });
+        return patch;
       default:
         throw new InconsistentState();
     }
@@ -139,7 +156,9 @@ export class EventRepository<T extends PayloadModel> {
       switch (pending.metadata.objectState) {
         case ObjectState.updated:
         case ObjectState.deleted:
-          return await this.inplaceDelete(user, pending, stable._id);
+          const cleaned = await this.inplaceDelete(user, pending, stable._id);
+          await this.hub.close(cleaned.id);
+          return cleaned;
         default:
           throw new InconsistentState();
       }
@@ -147,9 +166,13 @@ export class EventRepository<T extends PayloadModel> {
 
     switch (stable.metadata.objectState) {
       case ObjectState.created:
-        return await this.inplaceDelete(user, stable);
+        const cleaned = await this.inplaceDelete(user, stable);
+        await this.hub.close(cleaned.id);
+        return cleaned;
       case ObjectState.stable:
-        return await this.newDelete(user, stable, reference);
+        const pendingDelete = await this.newDelete(user, stable, reference);
+        await this.hub.create(pendingDelete.id, pendingDelete.object_state);
+        return pendingDelete;
       default:
         throw new InconsistentState();
     }
