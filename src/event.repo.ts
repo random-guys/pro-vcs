@@ -2,7 +2,8 @@ import {
   BaseRepository,
   ModelNotFoundError,
   MongooseNamespace,
-  Query
+  Query,
+  DuplicateModelError
 } from '@random-guys/bucket';
 import mapKeys from 'lodash/mapKeys';
 import startCase from 'lodash/startCase';
@@ -51,6 +52,19 @@ export class EventRepository<T extends PayloadModel> {
     });
   }
 
+  async assertExists(query: object) {
+    const element = await this.internalRepo.byQuery(
+      this.payload(query),
+      null,
+      false
+    );
+    if (element) {
+      throw new DuplicateModelError(
+        `The ${startCase(this.internalRepo.name)} already exists`
+      );
+    }
+  }
+
   async get(user: string, reference: string) {
     const maybePending = await this.internalRepo.byQuery({
       'metadata.reference': reference,
@@ -86,7 +100,7 @@ export class EventRepository<T extends PayloadModel> {
           if (!vals)
             return reject(
               new ModelNotFoundError(
-                `There's no such ${startCase(this.inplaceUpdate.name)}`
+                `There's no such ${startCase(this.internalRepo.name)}`
               )
             );
           resolve(vals);

@@ -184,15 +184,20 @@ describe('ProVCS Repo Constraints', () => {
     const looj = await dataRepo.internalRepo.create(
       mockApprovedUser('looj@rx.com')
     );
+    await dataRepo.create('arewaolakunle', mockUser());
 
     await dataRepo.update('arewaolakunle', nok.id, { fullname: 'Wakanda' });
     await dataRepo.update('chudioranu', looj.id, { fullname: 'Is Stupid' });
 
     const aUsers = await dataRepo.all('arewaolakunle');
     const cUsers = await dataRepo.all('chudioranu');
+    const minusNew = await dataRepo.all('nobody', {}, false);
 
-    expect(aUsers.length).toBe(2);
-    expect(cUsers.length).toBe(2);
+    expect(aUsers.length).toBe(3);
+    expect(cUsers.length).toBe(3);
+    expect(minusNew.length).toBe(2);
+    expect(minusNew[0].payload.fullname).toBe('Jasmine Joe');
+    expect(minusNew[1].payload.fullname).toBe('Jasmine Joe');
 
     const aUser = await dataRepo.all('chudioranu', {
       conditions: {
