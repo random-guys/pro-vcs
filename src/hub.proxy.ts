@@ -32,19 +32,8 @@ export class HubProxy<T extends PayloadModel> {
   async close(reference: string) {
     await publisher.queue(this.queue, {
       object_type: this.name,
-      event_type: 'patch',
+      event_type: 'close',
       reference
     });
   }
 }
-
-export interface CreateObject {
-  payload: any;
-}
-
-export interface UpdateObject {
-  stale_payload: any;
-  fresh_payload: any;
-}
-
-export interface DeleteObject {}

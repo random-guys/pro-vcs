@@ -9,6 +9,7 @@ import {
 import { mockUnapprovedUpdate } from '../mocks/user/index';
 import { EventRepository } from '../src';
 import { ObjectState } from '../src/event.model'; // test couldn't detect eventType from outside
+import { publisher } from '@random-guys/eventbus';
 
 describe('ProVCS Repo Constraints', () => {
   let mongooseNs: MongooseNamespace;
@@ -19,6 +20,7 @@ describe('ProVCS Repo Constraints', () => {
       'mongodb://localhost:27017/sterlingpro-test',
       defaultMongoOpts
     );
+    await publisher.init('amqp://localhost:5672');
     dataRepo = new EventRepository(mongooseNs, 'User');
   });
 
@@ -26,6 +28,7 @@ describe('ProVCS Repo Constraints', () => {
     // clean up
     await mongooseNs.connection.dropDatabase();
     await mongooseNs.disconnect();
+    await publisher.close();
   });
 
   it('Should add create metadata to a new event', async () => {

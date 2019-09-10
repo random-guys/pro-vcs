@@ -8,6 +8,7 @@ Database abstraction to simplify review request workflow
 
 ## TODO
 
+- [ ] [Less complex code](https://dave.cheney.net/2019/07/09/clear-is-better-than-clever)
 - [ ] Analysis for possible concurrency bugs
 - [ ] Split test files(specifically `event.repo.ts`)
 
