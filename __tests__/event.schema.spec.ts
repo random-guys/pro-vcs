@@ -4,7 +4,7 @@ import {
   MongooseNamespace
 } from '@random-guys/bucket';
 import mongoose from 'mongoose';
-import { User, mockEmptyUserEvent } from '../mocks/user';
+import { mockEmptyUserEvent, User, UserSchema } from '../mocks/user';
 import { EventModel, EventSchema, ObjectState } from '../src';
 
 describe('Event Schema Rules', () => {
@@ -16,7 +16,7 @@ describe('Event Schema Rules', () => {
       'mongodb://localhost:27017/sterlingpro-test',
       defaultMongoOpts
     );
-    dataRepo = new BaseRepository(mongoose, 'TestDB', EventSchema());
+    dataRepo = new BaseRepository(mongoose, 'TestDB', EventSchema(UserSchema));
   });
 
   afterAll(async () => {

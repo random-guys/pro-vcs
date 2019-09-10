@@ -11,6 +11,7 @@ import { EventModel, ObjectState, PayloadModel } from './event.model';
 import { EventSchema } from './event.schema';
 import { mongoSet } from './object.util';
 import { HubProxy } from './hub.proxy';
+import { SchemaDefinition } from 'mongoose';
 
 /**
  * This error is usually thrown when a user tries
@@ -38,12 +39,13 @@ export class EventRepository<T extends PayloadModel> {
   constructor(
     mongoose: MongooseNamespace,
     name: string,
+    schema: SchemaDefinition,
     exclude: string[] = []
   ) {
     this.internalRepo = new BaseRepository(
       mongoose,
       name,
-      EventSchema(exclude)
+      EventSchema(schema, exclude)
     );
     this.hub = new HubProxy(name);
   }

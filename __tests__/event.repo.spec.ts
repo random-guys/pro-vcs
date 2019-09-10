@@ -1,15 +1,16 @@
 import { defaultMongoOpts, MongooseNamespace } from '@random-guys/bucket';
+import { publisher } from '@random-guys/eventbus';
 import mongoose from 'mongoose';
 import {
   mockApprovedUser,
   mockFrozenUser,
   mockUser,
-  User
+  User,
+  UserSchema
 } from '../mocks/user';
 import { mockUnapprovedUpdate } from '../mocks/user/index';
 import { EventRepository } from '../src';
 import { ObjectState } from '../src/event.model'; // test couldn't detect eventType from outside
-import { publisher } from '@random-guys/eventbus';
 
 describe('ProVCS Repo Constraints', () => {
   let mongooseNs: MongooseNamespace;
@@ -21,7 +22,7 @@ describe('ProVCS Repo Constraints', () => {
       defaultMongoOpts
     );
     await publisher.init('amqp://localhost:5672');
-    dataRepo = new EventRepository(mongooseNs, 'User');
+    dataRepo = new EventRepository(mongooseNs, 'User', UserSchema);
   });
 
   afterAll(async () => {

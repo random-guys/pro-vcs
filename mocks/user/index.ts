@@ -1,6 +1,6 @@
 import { ObjectState } from '../../src/event.model';
 export * from './user.model';
-// export * from "./user.repo";
+export * from './user.schema';
 
 export function mockEmptyUserEvent() {
   return {

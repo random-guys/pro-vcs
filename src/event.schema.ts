@@ -32,6 +32,7 @@ export const MetadateSchema: SchemaDefinition = {
 };
 
 export const EventSchema = <T extends PayloadModel>(
+  payloadSchema: SchemaDefinition,
   exclude: string[] = [],
   options?: SchemaOptions
 ) => {
@@ -49,7 +50,7 @@ export const EventSchema = <T extends PayloadModel>(
     {
       _id: uuid,
       metadata: MetadateSchema,
-      payload: { type: SchemaTypes.Mixed, required: true }
+      payload: payloadSchema
     },
     {
       ...options,
