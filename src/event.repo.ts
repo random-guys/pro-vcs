@@ -197,9 +197,11 @@ export class EventRepository<T extends PayloadModel> {
           await stable.remove();
           return await this.stabilise(pending._id);
         case ObjectState.deleted:
-          return this.internalRepo.destroy({
-            'metadata.reference': reference
-          });
+          return this.internalRepo.model
+            .deleteMany({
+              'metadata.reference': reference
+            })
+            .exec();
         default:
           throw new InconsistentState();
       }
