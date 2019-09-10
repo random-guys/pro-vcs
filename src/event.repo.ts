@@ -53,7 +53,7 @@ export class EventRepository<T extends PayloadModel> {
       metadata: { owner, objectState: ObjectState.created },
       payload: event
     });
-    this.hub.create(newObject.id, newObject.object_state, {
+    this.hub.fireCreate(newObject.id, newObject.object_state, {
       payload: newObject.payload
     });
     return newObject;
@@ -121,7 +121,7 @@ export class EventRepository<T extends PayloadModel> {
       switch (pending.metadata.objectState) {
         case ObjectState.updated:
           const patch = await this.inplaceUpdate(user, pending, update);
-          await this.hub.patch(reference, patch.payload);
+          await this.hub.firePatch(reference, patch.payload);
           return patch;
         case ObjectState.deleted:
           throw new InvalidOperation(
@@ -136,11 +136,11 @@ export class EventRepository<T extends PayloadModel> {
     switch (stable.metadata.objectState) {
       case ObjectState.created:
         patch = await this.inplaceUpdate(user, stable, update);
-        await this.hub.patch(reference, patch.payload);
+        await this.hub.firePatch(reference, patch.payload);
         return patch;
       case ObjectState.stable:
         patch = await this.newUpdate(user, stable, update);
-        await this.hub.create(reference, patch.object_state, {
+        await this.hub.fireCreate(reference, patch.object_state, {
           stale_payload: stable.payload,
           fresh_payload: patch.payload
         });
@@ -157,7 +157,7 @@ export class EventRepository<T extends PayloadModel> {
         case ObjectState.updated:
         case ObjectState.deleted:
           const cleaned = await this.inplaceDelete(user, pending, stable._id);
-          await this.hub.close(cleaned.id);
+          await this.hub.fireClose(cleaned.id);
           return cleaned;
         default:
           throw new InconsistentState();
@@ -167,11 +167,11 @@ export class EventRepository<T extends PayloadModel> {
     switch (stable.metadata.objectState) {
       case ObjectState.created:
         const cleaned = await this.inplaceDelete(user, stable);
-        await this.hub.close(cleaned.id);
+        await this.hub.fireClose(cleaned.id);
         return cleaned;
       case ObjectState.stable:
         const pendingDelete = await this.newDelete(user, stable, reference);
-        await this.hub.create(pendingDelete.id, pendingDelete.object_state);
+        await this.hub.fireCreate(pendingDelete.id, pendingDelete.object_state);
         return pendingDelete;
       default:
         throw new InconsistentState();

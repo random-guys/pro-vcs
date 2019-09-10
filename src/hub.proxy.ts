@@ -10,7 +10,7 @@ export class HubProxy<T extends PayloadModel> {
     }
   }
 
-  async create(reference: string, state: ObjectState, args?: any) {
+  async fireCreate(reference: string, state: ObjectState, args?: any) {
     await publisher.queue(this.queue, {
       object_type: this.name,
       event_type: 'create',
@@ -20,7 +20,7 @@ export class HubProxy<T extends PayloadModel> {
     });
   }
 
-  async patch(reference: string, payload: T) {
+  async firePatch(reference: string, payload: T) {
     await publisher.queue(this.queue, {
       object_type: this.name,
       event_type: 'patch',
@@ -29,7 +29,7 @@ export class HubProxy<T extends PayloadModel> {
     });
   }
 
-  async close(reference: string) {
+  async fireClose(reference: string) {
     await publisher.queue(this.queue, {
       object_type: this.name,
       event_type: 'close',
