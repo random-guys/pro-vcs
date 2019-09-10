@@ -103,13 +103,22 @@ export class EventRepository<T extends PayloadModel> {
         .find({ 'metadata.reference': reference })
         .sort('created_at')
         .exec((err, vals) => {
+          // proxy error
           if (err) return reject(err);
-          if (!vals)
+
+          // make sure model exists
+          if (!vals || vals.length === 0) {
             return reject(
               new ModelNotFoundError(
                 `There's no such ${startCase(this.internalRepo.name)}`
               )
             );
+          }
+
+          // watchout for more than 2 objects
+          if (vals.length > 2) {
+            return reject(new InconsistentState());
+          }
           resolve(vals);
         });
     });
@@ -197,8 +206,6 @@ export class EventRepository<T extends PayloadModel> {
     switch (stable.metadata.objectState) {
       case ObjectState.created:
         return await this.stabilise(stable._id);
-      case ObjectState.stable:
-        return stable;
       default:
         throw new InconsistentState();
     }
