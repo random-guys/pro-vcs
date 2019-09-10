@@ -210,6 +210,31 @@ export class EventRepository<T extends PayloadModel> {
     switch (stable.metadata.objectState) {
       case ObjectState.created:
         return await this.stabilise(stable._id);
+      case ObjectState.stable:
+        return stable;
+      default:
+        throw new InconsistentState();
+    }
+  }
+
+  async reject(reference: string) {
+    const [stable, pending] = await this.getRelatedEvents(reference);
+    if (pending) {
+      switch (pending.metadata.objectState) {
+        case ObjectState.updated:
+        case ObjectState.deleted:
+          await pending.remove();
+          return await this.stabilise(stable._id);
+        default:
+          throw new InconsistentState();
+      }
+    }
+
+    switch (stable.metadata.objectState) {
+      case ObjectState.created:
+        return await stable.remove();
+      case ObjectState.stable:
+        return stable;
       default:
         throw new InconsistentState();
     }
