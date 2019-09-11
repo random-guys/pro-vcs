@@ -3,6 +3,7 @@
 Database abstraction to simplify review request workflow
 
 ## How to install?
+Run 'yarn install @random-guys/pro-vcs'
 
 ## How does it work?
 
