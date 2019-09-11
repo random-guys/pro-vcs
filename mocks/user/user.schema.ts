@@ -1,7 +1,7 @@
-import { trimmedString } from "@random-guys/bucket";
-import { SchemaDefinition } from "mongoose";
+import { SchemaDefinition } from 'mongoose';
+import { trimmedString } from '@random-guys/bucket';
 
 export const UserSchema: SchemaDefinition = {
-  fullname: { ...trimmedString, required: true, index: true },
-  email_address: { ...trimmedString, required: true, unique: true }
-}
+  fullname: { ...trimmedString, required: true },
+  email_address: { ...trimmedString, required: true }
+};

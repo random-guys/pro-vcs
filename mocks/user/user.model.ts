@@ -1,6 +1,6 @@
-import { Model } from "@random-guys/bucket";
+import { PayloadModel } from '../../src/event.model';
 
-export interface User extends Model {
-  fullname: string
-  email_address: string
+export interface User extends PayloadModel {
+  fullname: string;
+  email_address: string;
 }

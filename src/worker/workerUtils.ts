@@ -1,15 +1,14 @@
-import Logger from "bunyan";
-import { createWorker, Context, Handler, createHandler } from "./bootstrap";
-import { subscriber } from "@random-guys/eventbus";
-import { slugify } from "../string";
+import { subscriber } from '@random-guys/eventbus';
+import { Context, createHandler, createWorker, Handler } from './bootstrap';
+import snakeCase from 'lodash/snakeCase';
 
 export interface PostApprovalWorkerConfig {
-  service: string
-  amqp_url: string
-  health_port: number
-  mongodb_url: string
-  redis_url?: string
-  setupHandlers(context: Context): Promise<void>
+  service: string;
+  amqp_url: string;
+  health_port: number;
+  mongodb_url: string;
+  redis_url?: string;
+  setupHandlers(context: Context): Promise<void>;
 }
 
 export function createPostApprovalWorker(config: PostApprovalWorkerConfig) {
@@ -20,11 +19,15 @@ export function createPostApprovalWorker(config: PostApprovalWorkerConfig) {
     mongodb_url: config.mongodb_url,
     redis_url: config.redis_url,
     postSetup: config.setupHandlers
-  })
+  });
 }
 
-export async function onCreateApproved<T>(name: string, context: Context, handler: Handler<T>) {
-  const eventName = slugify(name)
+export async function onCreateApproved<T>(
+  name: string,
+  context: Context,
+  handler: Handler<T>
+) {
+  const eventName = snakeCase(name);
   await subscriber.on(
     'reviews',
     `${eventName}.created`,
@@ -33,8 +36,12 @@ export async function onCreateApproved<T>(name: string, context: Context, handle
   );
 }
 
-export async function onUpdateApproved<T>(name: string, context: Context, handler: Handler<T>) {
-  const eventName = slugify(name)
+export async function onUpdateApproved<T>(
+  name: string,
+  context: Context,
+  handler: Handler<T>
+) {
+  const eventName = snakeCase(name);
   await subscriber.on(
     'reviews',
     `${eventName}.updated`,
@@ -43,8 +50,12 @@ export async function onUpdateApproved<T>(name: string, context: Context, handle
   );
 }
 
-export async function onDeleteApproved<T>(name: string, context: Context, handler: Handler<T>) {
-  const eventName = slugify(name)
+export async function onDeleteApproved<T>(
+  name: string,
+  context: Context,
+  handler: Handler<T>
+) {
+  const eventName = snakeCase(name);
   await subscriber.on(
     'reviews',
     `${eventName}.deleted`,

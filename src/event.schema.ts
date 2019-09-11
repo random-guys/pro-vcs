@@ -3,50 +3,54 @@ import {
   trimmedLowercaseString,
   trimmedString,
   uuid
-} from "@random-guys/bucket";
-import {
-  Schema,
-  SchemaDefinition,
-  SchemaOptions,
-  SchemaTypes
-} from "mongoose";
-import { EventModel, Payload } from "./event.model";
-import { mapperConfig } from "./schema.util";
-
+} from '@random-guys/bucket';
+import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from 'mongoose';
+import { EventModel, ObjectState, PayloadModel } from './event.model';
+import { mapperConfig } from './schema.util';
 
 const eventVirtuals = {
-  frozen<T>(schema: Schema) {
-    schema.virtual('frozen').get(function (this: EventModel<T>) {
-      return !this.metadata.date_approved
-    })
+  state<T extends PayloadModel>(schema: Schema) {
+    schema.virtual('object_state').get(function(this: EventModel<T>) {
+      return this.metadata.objectState;
+    });
   },
-  id<T>(schema: Schema) {
-    schema.virtual('id').get(function (this: EventModel<T>) {
-      return this.metadata.reference
-    })
-  },
-}
+  id<T extends PayloadModel>(schema: Schema) {
+    schema.virtual('id').get(function(this: EventModel<T>) {
+      return this.metadata.reference;
+    });
+  }
+};
 
 export const MetadateSchema: SchemaDefinition = {
   reference: { ...uuid, index: true },
-  owner: { ...trimmedString, required: true, index: true },
-  date_approved: { type: SchemaTypes.Date, default: null },
-  action: { ...trimmedLowercaseString, default: null }
-}
+  owner: { ...trimmedString, index: true },
+  objectState: {
+    ...trimmedLowercaseString,
+    required: true,
+    enum: Object.keys(ObjectState)
+  }
+};
 
-export const EventSchema = <T>(exclude: string[] = [], options?: SchemaOptions) => {
+export const EventSchema = <T extends PayloadModel>(
+  payloadSchema: SchemaDefinition,
+  exclude: string[] = [],
+  options?: SchemaOptions
+) => {
   // make sure to remove any trace of metadata
-  const mapper = mapperConfig<EventModel<T>>(exclude, (data) => {
-    const payload: any = data.payload || {}
-    payload.id = data.metadata.reference
-    payload.frozen = !data.metadata.date_approved
-    return payload
-  })
+  const mapper = mapperConfig<EventModel<T>>(exclude, data => {
+    const payload = data.payload;
+    payload.id = data.metadata.reference;
+    payload.object_state = data.metadata.objectState;
+    payload.created_at = data.created_at;
+    payload.updated_at = data.updated_at;
+    return payload;
+  });
 
   const schema = new Schema(
     {
+      _id: uuid,
       metadata: MetadateSchema,
-      payload: { type: SchemaTypes.Mixed, default: null }
+      payload: payloadSchema
     },
     {
       ...options,
@@ -56,11 +60,11 @@ export const EventSchema = <T>(exclude: string[] = [], options?: SchemaOptions) 
       id: false, // disable this, we don't need it
       selectPopulatedPaths: false
     }
-  )
+  );
 
   // enable payload virtuals
-  eventVirtuals.id(schema)
-  eventVirtuals.frozen(schema)
+  eventVirtuals.id(schema);
+  eventVirtuals.state(schema);
 
-  return schema
-}
+  return schema;
+};

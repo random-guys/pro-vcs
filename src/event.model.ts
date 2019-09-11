@@ -1,19 +1,28 @@
-import { Model } from "@random-guys/bucket";
-import { Diff } from "deep-diff";
+import { Model } from '@random-guys/bucket';
 
+export enum ObjectState {
+  created = 'created',
+  updated = 'updated',
+  deleted = 'deleted',
+  frozen = 'frozen',
+  stable = 'stable'
+}
 
-export type Action = 'create' | 'update' | 'delete'
-export type Payload<T> = T | Diff<any>[]
+export interface PayloadModel {
+  id: string;
+  created_at: Date;
+  updated_at: Date;
+  object_state: ObjectState;
+}
 
-export interface EventModel<T> extends Model {
-  frozen: boolean
-  metadata: Metadata
-  payload?: Payload<T>
+export interface EventModel<T extends PayloadModel> extends Model {
+  object_state: ObjectState;
+  metadata: Metadata;
+  payload: T;
 }
 
 export interface Metadata {
-  reference: string
-  owner: string
-  date_approved: Date
-  action?: Action
+  reference: string;
+  owner?: string;
+  objectState: ObjectState;
 }
