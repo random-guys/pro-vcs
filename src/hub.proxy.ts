@@ -3,12 +3,7 @@ import { ObjectState, PayloadModel } from './event.model';
 
 export class HubProxy<T extends PayloadModel> {
   private queue = 'PROHUB_QUEUE';
-  constructor(private name: string) {
-    const conn = publisher.getConnection();
-    if (!conn) {
-      throw Error('RabbitMQ not online');
-    }
-  }
+  constructor(private name: string) {}
 
   async fireCreate(reference: string, state: ObjectState, args?: any) {
     await publisher.queue(this.queue, {
