@@ -9,7 +9,7 @@ export enum ObjectState {
 }
 
 export interface PayloadModel {
-  _id: string;
+  _raw_id: string;
   id: string;
   created_at: Date;
   updated_at: Date;
