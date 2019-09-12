@@ -50,7 +50,7 @@ export class EventRepository<T extends PayloadModel> {
     this.hub = new HubProxy(name);
   }
 
-  async create(owner: string, event: Partial<T>) {
+  async create(owner: string, event: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
       metadata: { owner, objectState: ObjectState.created },
       payload: event
@@ -58,10 +58,10 @@ export class EventRepository<T extends PayloadModel> {
     this.hub.fireCreate(newObject.id, newObject.object_state, {
       payload: newObject.payload
     });
-    return newObject;
+    return newObject.toObject();
   }
 
-  async assertExists(query: object) {
+  async assertExists(query: object): Promise<void> {
     const element = await this.internalRepo.byQuery(
       this.payload(query),
       null,
@@ -74,7 +74,7 @@ export class EventRepository<T extends PayloadModel> {
     }
   }
 
-  async get(user: string, reference: string) {
+  async get(user: string, reference: string): Promise<T> {
     const maybePending = await this.internalRepo.byQuery({
       'metadata.reference': reference,
       $nor: [
@@ -82,21 +82,21 @@ export class EventRepository<T extends PayloadModel> {
       ]
     });
 
-    return this.onCreate(user, maybePending);
+    return this.onCreate(user, maybePending).toObject();
   }
 
-  async byQuery(user: string, query: any) {
+  async byQuery(user: string, query: any): Promise<T> {
     const maybePending = await this.internalRepo.byQuery(
       this.getQuery(user, query)
     );
 
-    return this.onCreate(user, maybePending);
+    return this.onCreate(user, maybePending).toObject();
   }
 
-  async all(user: string, query: Query = {}, allowNew = true) {
+  async all(user: string, query: Query = {}, allowNew = true): Promise<T[]> {
     query.conditions = this.getQuery(user, query.conditions, allowNew);
     const maybes = await this.internalRepo.all(query);
-    return maybes.map(e => this.onCreate(user, e));
+    return maybes.map(e => this.onCreate(user, e).toObject());
   }
 
   protected getRelatedEvents(reference: string) {
@@ -126,14 +126,18 @@ export class EventRepository<T extends PayloadModel> {
     });
   }
 
-  async update(user: string, reference: string, update: Partial<T>) {
+  async update(
+    user: string,
+    reference: string,
+    update: Partial<T>
+  ): Promise<T> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
       switch (pending.metadata.objectState) {
         case ObjectState.updated:
           const patch = await this.inplaceUpdate(user, pending, update);
           await this.hub.firePatch(reference, patch.payload);
-          return patch;
+          return patch.toObject();
         case ObjectState.deleted:
           throw new InvalidOperation(
             "Can't update an item up that is to be deleted"
@@ -148,20 +152,20 @@ export class EventRepository<T extends PayloadModel> {
       case ObjectState.created:
         patch = await this.inplaceUpdate(user, stable, update);
         await this.hub.firePatch(reference, patch.payload);
-        return patch;
+        return patch.toObject();
       case ObjectState.stable:
         patch = await this.newUpdate(user, stable, update);
         await this.hub.fireCreate(reference, patch.object_state, {
           stale_payload: stable.payload,
           fresh_payload: patch.payload
         });
-        return patch;
+        return patch.toObject();
       default:
         throw new InconsistentState();
     }
   }
 
-  async delete(user: string, reference: string) {
+  async delete(user: string, reference: string): Promise<T> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
       switch (pending.metadata.objectState) {
@@ -169,7 +173,7 @@ export class EventRepository<T extends PayloadModel> {
         case ObjectState.deleted:
           const cleaned = await this.inplaceDelete(user, pending, stable._id);
           await this.hub.fireClose(cleaned.id);
-          return cleaned;
+          return cleaned.toObject();
         default:
           throw new InconsistentState();
       }
@@ -179,29 +183,25 @@ export class EventRepository<T extends PayloadModel> {
       case ObjectState.created:
         const cleaned = await this.inplaceDelete(user, stable);
         await this.hub.fireClose(cleaned.id);
-        return cleaned;
+        return cleaned.toObject();
       case ObjectState.stable:
         const pendingDelete = await this.newDelete(user, stable, reference);
         await this.hub.fireCreate(pendingDelete.id, pendingDelete.object_state);
-        return pendingDelete;
+        return pendingDelete.toObject();
       default:
         throw new InconsistentState();
     }
   }
 
-  async merge(reference: string) {
+  async merge(reference: string): Promise<T | void> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
       switch (pending.metadata.objectState) {
         case ObjectState.updated:
           await stable.remove();
-          return await this.stabilise(pending._id);
+          return (await this.stabilise(pending._id)).toObject();
         case ObjectState.deleted:
-          return this.internalRepo.model
-            .deleteMany({
-              'metadata.reference': reference
-            })
-            .exec();
+          return this.clean(reference);
         default:
           throw new InconsistentState();
       }
@@ -209,22 +209,22 @@ export class EventRepository<T extends PayloadModel> {
 
     switch (stable.metadata.objectState) {
       case ObjectState.created:
-        return await this.stabilise(stable._id);
+        return (await this.stabilise(stable._id)).toObject();
       case ObjectState.stable:
-        return stable;
+        return stable.toObject();
       default:
         throw new InconsistentState();
     }
   }
 
-  async reject(reference: string) {
+  async reject(reference: string): Promise<T> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
       switch (pending.metadata.objectState) {
         case ObjectState.updated:
         case ObjectState.deleted:
           await pending.remove();
-          return await this.stabilise(stable._id);
+          return (await this.stabilise(stable._id)).toObject();
         default:
           throw new InconsistentState();
       }
@@ -232,9 +232,9 @@ export class EventRepository<T extends PayloadModel> {
 
     switch (stable.metadata.objectState) {
       case ObjectState.created:
-        return await stable.remove();
+        return (await stable.remove()).toObject();
       case ObjectState.stable:
-        return stable;
+        return stable.toObject();
       default:
         throw new InconsistentState();
     }
@@ -247,6 +247,12 @@ export class EventRepository<T extends PayloadModel> {
         'metadata.owner': null
       }
     });
+  }
+
+  protected async clean(reference: string) {
+    await this.internalRepo.model
+      .deleteMany({ 'metadata.reference': reference })
+      .exec();
   }
 
   protected inplaceUpdate(

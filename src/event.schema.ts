@@ -39,6 +39,7 @@ export const EventSchema = <T extends PayloadModel>(
   // make sure to remove any trace of metadata
   const mapper = mapperConfig<EventModel<T>>(exclude, data => {
     const payload = data.payload;
+    payload._raw_id = data._id;
     payload.id = data.metadata.reference;
     payload.object_state = data.metadata.objectState;
     payload.created_at = data.created_at;
