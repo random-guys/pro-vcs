@@ -40,20 +40,44 @@ describe('ProVCS Repo Constraints', () => {
 
   it('Should add create metadata to a new event', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser());
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUer = await dataRepo.get('someone', user.id);
 
-    expect(user.object_state).toBe(ObjectState.created);
+    // owner should see created
+    expect(writeUser.object_state).toBe(ObjectState.created);
+    // ensure no other user can see created
+    expect(readerUer.object_state).toBe(ObjectState.frozen);
 
     // cleanup afterwards
     await cleanRepo(user.id);
   });
 
-  it('Should get a newly created event', async () => {
+  it('Should update a pending create', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser());
-    const loadedUser = await dataRepo.get('olaolu', user.id);
+    await dataRepo.update('arewaolakunle', user.id, {
+      email_address: 'nope@gmail.com'
+    });
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUer = await dataRepo.get('someone', user.id);
 
-    expect(loadedUser.id).toBe(user.id);
+    // they must see the same thing
+    expect(writeUser.email_address).toBe('nope@gmail.com');
+    expect(writeUser.email_address).toBe(readerUer.email_address);
 
-    // cleanup afterwards
+    await cleanRepo(user.id);
+  });
+
+  it('Should delete a pending create', async () => {
+    const user = await dataRepo.create('arewaolakunle', mockUser());
+    await dataRepo.delete('arewaolakunle', user.id);
+
+    expect(dataRepo.get('arewaolakunle', user.id)).rejects.toThrowError(
+      /User not found/
+    );
+    expect(dataRepo.get('someone', user.id)).rejects.toThrowError(
+      /User not found/
+    );
+
     await cleanRepo(user.id);
   });
 
@@ -85,19 +109,6 @@ describe('ProVCS Repo Constraints', () => {
     await cleanRepo(loadedUser.id);
   });
 
-  it('Should update a pending create', async () => {
-    const user = await dataRepo.create('arewaolakunle', mockUser());
-    const userUpdate = await dataRepo.update('arewaolakunle', user.id, {
-      email_address: 'nope@gmail.com'
-    });
-
-    expect(userUpdate._raw_id).toBe(user._raw_id);
-    expect(userUpdate.object_state).toBe(ObjectState.created);
-    expect(userUpdate.email_address).toBe('nope@gmail.com');
-
-    await cleanRepo(user.id);
-  });
-
   it('Should create a delete event', async () => {
     const user = await dataRepo.internalRepo.create(mockApprovedUser());
     const userDelete = await dataRepo.delete('arewaolakunle', user.id);
@@ -108,22 +119,6 @@ describe('ProVCS Repo Constraints', () => {
     expect(userDelete.object_state).toBe(ObjectState.deleted);
     expect(reloadedUser.object_state).toBe(ObjectState.frozen);
     expect(loadedUser.object_state).toBe(ObjectState.deleted);
-
-    await cleanRepo(user.id);
-  });
-
-  it('Should delete a pending create', async () => {
-    const user = await dataRepo.create('arewaolakunle', mockUser());
-    const event = await dataRepo.delete('arewaolakunle', user.id);
-    const loadedUser = await dataRepo.internalRepo.byID(
-      user._raw_id,
-      null,
-      false
-    );
-
-    expect(event._raw_id).toBe(user._raw_id);
-    expect(event.object_state).toBe(ObjectState.created);
-    expect(loadedUser).toBeNull();
 
     await cleanRepo(user.id);
   });

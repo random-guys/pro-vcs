@@ -25,5 +25,5 @@ export interface EventModel<T extends PayloadModel> extends Model {
 export interface Metadata {
   reference: string;
   owner?: string;
-  objectState: ObjectState;
+  object_state: ObjectState;
 }

@@ -52,7 +52,7 @@ export class EventRepository<T extends PayloadModel> {
 
   async create(owner: string, event: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
-      metadata: { owner, objectState: ObjectState.created },
+      metadata: { owner, object_state: ObjectState.created },
       payload: event
     });
     this.hub.fireCreate(newObject.id, newObject.object_state, {
@@ -78,7 +78,7 @@ export class EventRepository<T extends PayloadModel> {
     const maybePending = await this.internalRepo.byQuery({
       'metadata.reference': reference,
       $nor: [
-        { 'metadata.owner': user, 'metadata.objectState': ObjectState.frozen }
+        { 'metadata.owner': user, 'metadata.object_state': ObjectState.frozen }
       ]
     });
 
@@ -133,7 +133,7 @@ export class EventRepository<T extends PayloadModel> {
   ): Promise<T> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
-      switch (pending.metadata.objectState) {
+      switch (pending.metadata.object_state) {
         case ObjectState.updated:
           const patch = await this.inplaceUpdate(user, pending, update);
           await this.hub.firePatch(reference, patch.payload);
@@ -148,7 +148,7 @@ export class EventRepository<T extends PayloadModel> {
     }
 
     let patch: EventModel<T>;
-    switch (stable.metadata.objectState) {
+    switch (stable.metadata.object_state) {
       case ObjectState.created:
         patch = await this.inplaceUpdate(user, stable, update);
         await this.hub.firePatch(reference, patch.payload);
@@ -168,7 +168,7 @@ export class EventRepository<T extends PayloadModel> {
   async delete(user: string, reference: string): Promise<T> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
-      switch (pending.metadata.objectState) {
+      switch (pending.metadata.object_state) {
         case ObjectState.updated:
         case ObjectState.deleted:
           const cleaned = await this.inplaceDelete(user, pending, stable._id);
@@ -179,7 +179,7 @@ export class EventRepository<T extends PayloadModel> {
       }
     }
 
-    switch (stable.metadata.objectState) {
+    switch (stable.metadata.object_state) {
       case ObjectState.created:
         const cleaned = await this.inplaceDelete(user, stable);
         await this.hub.fireClose(cleaned.id);
@@ -196,7 +196,7 @@ export class EventRepository<T extends PayloadModel> {
   async merge(reference: string): Promise<T | void> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
-      switch (pending.metadata.objectState) {
+      switch (pending.metadata.object_state) {
         case ObjectState.updated:
           await stable.remove();
           return (await this.stabilise(pending._id)).toObject();
@@ -207,7 +207,7 @@ export class EventRepository<T extends PayloadModel> {
       }
     }
 
-    switch (stable.metadata.objectState) {
+    switch (stable.metadata.object_state) {
       case ObjectState.created:
         return (await this.stabilise(stable._id)).toObject();
       case ObjectState.stable:
@@ -220,7 +220,7 @@ export class EventRepository<T extends PayloadModel> {
   async reject(reference: string): Promise<T> {
     const [stable, pending] = await this.getRelatedEvents(reference);
     if (pending) {
-      switch (pending.metadata.objectState) {
+      switch (pending.metadata.object_state) {
         case ObjectState.updated:
         case ObjectState.deleted:
           await pending.remove();
@@ -230,7 +230,7 @@ export class EventRepository<T extends PayloadModel> {
       }
     }
 
-    switch (stable.metadata.objectState) {
+    switch (stable.metadata.object_state) {
       case ObjectState.created:
         return (await stable.remove()).toObject();
       case ObjectState.stable:
@@ -243,7 +243,7 @@ export class EventRepository<T extends PayloadModel> {
   protected stabilise(id: string) {
     return this.internalRepo.atomicUpdate(id, {
       $set: {
-        'metadata.objectState': ObjectState.stable,
+        'metadata.object_state': ObjectState.stable,
         'metadata.owner': null
       }
     });
@@ -286,7 +286,7 @@ export class EventRepository<T extends PayloadModel> {
       // unfreeze stable version
       this.internalRepo.atomicUpdate(stableId, {
         $set: {
-          'metadata.objectState': ObjectState.stable,
+          'metadata.object_state': ObjectState.stable,
           'metadata.owner': null
         }
       });
@@ -300,7 +300,7 @@ export class EventRepository<T extends PayloadModel> {
     // mark object as frozen
     this.internalRepo.atomicUpdate(stable._id, {
       $set: {
-        'metadata.objectState': ObjectState.frozen,
+        'metadata.object_state': ObjectState.frozen,
         'metadata.owner': user
       }
     });
@@ -310,7 +310,7 @@ export class EventRepository<T extends PayloadModel> {
       metadata: {
         owner: user,
         reference: stable.id,
-        objectState: ObjectState.updated
+        object_state: ObjectState.updated
       },
       payload: mongoSet(stable.payload, update)
     });
@@ -320,7 +320,7 @@ export class EventRepository<T extends PayloadModel> {
     // mark object as frozen
     this.internalRepo.atomicUpdate(stable._id, {
       $set: {
-        'metadata.objectState': ObjectState.frozen,
+        'metadata.object_state': ObjectState.frozen,
         'metadata.owner': user
       }
     });
@@ -329,7 +329,7 @@ export class EventRepository<T extends PayloadModel> {
     return this.internalRepo.create({
       metadata: {
         owner: user,
-        objectState: ObjectState.deleted,
+        object_state: ObjectState.deleted,
         reference
       },
       payload: stable.payload
@@ -338,10 +338,10 @@ export class EventRepository<T extends PayloadModel> {
 
   protected onCreate(user: string, maybePending: EventModel<T>) {
     if (
-      maybePending.metadata.objectState === ObjectState.created &&
+      maybePending.metadata.object_state === ObjectState.created &&
       maybePending.metadata.owner !== user
     ) {
-      maybePending.metadata.objectState = ObjectState.frozen;
+      maybePending.metadata.object_state = ObjectState.frozen;
     }
     return maybePending;
   }
@@ -350,18 +350,18 @@ export class EventRepository<T extends PayloadModel> {
     const orQuery = [
       {
         'metadata.owner': user,
-        'metadata.objectState': { $ne: ObjectState.frozen }
+        'metadata.object_state': { $ne: ObjectState.frozen }
       },
       {
         'metadata.owner': { $ne: user },
-        'metadata.objectState': ObjectState.frozen
+        'metadata.object_state': ObjectState.frozen
       },
       {
-        'metadata.objectState': ObjectState.stable
+        'metadata.object_state': ObjectState.stable
       }
     ];
     if (allowNew) {
-      orQuery.push({ 'metadata.objectState': ObjectState.created });
+      orQuery.push({ 'metadata.object_state': ObjectState.created });
     }
     return {
       ...this.payload(query),

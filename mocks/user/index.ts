@@ -4,21 +4,21 @@ export * from './user.schema';
 
 export function mockEmptyUserEvent() {
   return {
-    metadata: { owner: 'arewaolakunle', objectState: ObjectState.created },
+    metadata: { owner: 'arewaolakunle', object_state: ObjectState.created },
     payload: mockUser()
   };
 }
 
 export function mockApprovedUser(email = 'jasming@gmail.com') {
   return {
-    metadata: { objectState: ObjectState.stable },
+    metadata: { object_state: ObjectState.stable },
     payload: mockUser(email)
   };
 }
 
 export function mockFrozenUser(owner: string) {
   return {
-    metadata: { objectState: ObjectState.frozen, owner },
+    metadata: { object_state: ObjectState.frozen, owner },
     payload: mockUser()
   };
 }
@@ -29,7 +29,7 @@ export function mockUnapprovedUpdate(
   email: string
 ) {
   return {
-    metadata: { owner, objectState: ObjectState.updated, reference },
+    metadata: { owner, object_state: ObjectState.updated, reference },
     payload: mockUser(email)
   };
 }

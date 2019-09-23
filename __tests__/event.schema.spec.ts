@@ -30,7 +30,7 @@ describe('Event Schema Rules', () => {
     const userObject = user.toObject();
 
     expect(userObject.id).toBe(user.metadata.reference);
-    expect(userObject.object_state).toBe(user.metadata.objectState);
+    expect(userObject.object_state).toBe(user.metadata.object_state);
     expect(userObject.fullname).toBe((<User>user.payload).fullname);
     expect(userObject.created_at).toStrictEqual(user.created_at);
     expect(userObject.updated_at).toStrictEqual(user.updated_at);
@@ -44,7 +44,7 @@ describe('Event Schema Rules', () => {
     const userObject = user.toJSON();
 
     expect(userObject.id).toBe(user.metadata.reference);
-    expect(userObject.object_state).toBe(user.metadata.objectState);
+    expect(userObject.object_state).toBe(user.metadata.object_state);
     expect(userObject.fullname).toBe((<User>user.payload).fullname);
     expect(userObject.created_at).toStrictEqual(user.created_at);
     expect(userObject.updated_at).toStrictEqual(user.updated_at);

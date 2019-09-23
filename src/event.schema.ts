@@ -11,7 +11,7 @@ import { mapperConfig } from './schema.util';
 const eventVirtuals = {
   state<T extends PayloadModel>(schema: Schema) {
     schema.virtual('object_state').get(function(this: EventModel<T>) {
-      return this.metadata.objectState;
+      return this.metadata.object_state;
     });
   },
   id<T extends PayloadModel>(schema: Schema) {
@@ -24,7 +24,7 @@ const eventVirtuals = {
 export const MetadateSchema: SchemaDefinition = {
   reference: { ...uuid, index: true },
   owner: { ...trimmedString, index: true },
-  objectState: {
+  object_state: {
     ...trimmedLowercaseString,
     required: true,
     enum: Object.keys(ObjectState)
@@ -41,7 +41,7 @@ export const EventSchema = <T extends PayloadModel>(
     const payload = data.payload;
     payload._raw_id = data._id;
     payload.id = data.metadata.reference;
-    payload.object_state = data.metadata.objectState;
+    payload.object_state = data.metadata.object_state;
     payload.created_at = data.created_at;
     payload.updated_at = data.updated_at;
     return payload;
