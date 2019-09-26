@@ -6,11 +6,11 @@ export interface CreateEvent {
   object_state: ObjectState;
 }
 
-export interface PatchEvent<T extends PayloadModel = any> {
+export interface PatchEvent {
   object_type: string;
   event_type: 'patch';
   reference: string;
-  payload: T;
+  payload: PayloadModel;
 }
 
 export interface CloseEvent {
@@ -19,17 +19,15 @@ export interface CloseEvent {
   reference: string;
 }
 
-export interface NewObjectEvent<T extends PayloadModel = any>
-  extends CreateEvent {
+export interface NewObjectEvent extends CreateEvent {
   object_state: ObjectState.created;
-  payload: T;
+  payload: PayloadModel;
 }
 
-export interface UpdateObjectEvent<T extends PayloadModel = any>
-  extends CreateEvent {
+export interface UpdateObjectEvent<T extends PayloadModel> extends CreateEvent {
   object_state: ObjectState.updated;
-  stale_model: T;
-  fresh_model: T;
+  payload: PayloadModel;
+  update: Partial<T>;
 }
 
 export interface DeleteObjectEvent extends CreateEvent {

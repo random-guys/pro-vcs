@@ -1,14 +1,7 @@
 import { defaultMongoOpts, MongooseNamespace } from '@random-guys/bucket';
 import { publisher } from '@random-guys/eventbus';
 import mongoose from 'mongoose';
-import {
-  mockApprovedUser,
-  mockFrozenUser,
-  mockUser,
-  User,
-  UserSchema
-} from '../mocks/user';
-import { mockUnapprovedUpdate } from '../mocks/user/index';
+import { mockApprovedUser, mockUser, User, UserSchema } from '../mocks/user';
 import { EventRepository } from '../src';
 import { ObjectState } from '../src/event.model'; // test couldn't detect eventType from outside
 
@@ -32,139 +25,151 @@ describe('ProVCS Repo Constraints', () => {
     await publisher.close();
   });
 
+  function cleanRepo(reference: string) {
+    return dataRepo.internalRepo.destroy(reference, false);
+  }
+
   it('Should add create metadata to a new event', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser());
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
 
-    expect(user.metadata.objectState).toBe(ObjectState.created);
-    expect(user.metadata.owner).toBe('arewaolakunle');
-
-    // cleanup afterwards
-    await user.remove();
-  });
-
-  it('Should get a newly created event', async () => {
-    const user = await dataRepo.create('arewaolakunle', mockUser());
-    const loadedUser = await dataRepo.get('olaolu', user.id);
-
-    expect(loadedUser.id).toBe(user.id);
+    // owner should see created
+    expect(writeUser.object_state).toBe(ObjectState.created);
+    // ensure no other user can see created
+    expect(readerUser.object_state).toBe(ObjectState.frozen);
 
     // cleanup afterwards
-    await user.remove();
-  });
-
-  it('Should create a new update event', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
-    const userUpdate = await dataRepo.update('arewaolakunle', user.id, {
-      email_address: 'nope@gmail.com'
-    });
-    const reloadedUser = await dataRepo.get('nobody', user.id);
-    const loadedUser = await dataRepo.get('arewaolakunle', user.id);
-
-    // confirm the new update
-    expect(userUpdate.metadata.reference).toBe(user.id);
-    expect(userUpdate.metadata.objectState).toBe(ObjectState.updated);
-    expect(userUpdate.payload.email_address).toBe('nope@gmail.com');
-
-    // confirm the old data
-    expect(reloadedUser.metadata.objectState).toBe(ObjectState.frozen);
-    expect(reloadedUser.metadata.owner).toBe('arewaolakunle');
-
-    // confirm it respects get request
-    expect(loadedUser._id).toBe(userUpdate._id);
-    expect(loadedUser.payload.email_address).toBe('nope@gmail.com');
-
-    // cleanup afterwards
-    await userUpdate.remove();
-    await user.remove();
+    await cleanRepo(user.id);
   });
 
   it('Should update a pending create', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser());
-    const userUpdate = await dataRepo.update('arewaolakunle', user.id, {
+    await dataRepo.update('arewaolakunle', user.id, {
       email_address: 'nope@gmail.com'
     });
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
 
-    expect(userUpdate._id).toBe(user._id);
-    expect(userUpdate.metadata.objectState).toBe(ObjectState.created);
-    expect(userUpdate.metadata.owner).toBe('arewaolakunle');
-    expect(userUpdate.payload.email_address).toBe('nope@gmail.com');
+    // they must see the same thing
+    expect(writeUser.email_address).toBe('nope@gmail.com');
+    expect(writeUser.email_address).toBe(readerUser.email_address);
 
-    await user.remove();
-  });
-
-  it('Should create a delete event', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
-    const userDelete = await dataRepo.delete('arewaolakunle', user.id);
-    const reloadedUser = await dataRepo.get('nobody', user.id);
-    const loadedUser = await dataRepo.get('arewaolakunle', user.id);
-
-    expect(userDelete.id).toBe(user.id);
-    expect(userDelete.metadata.objectState).toBe(ObjectState.deleted);
-    expect(userDelete.metadata.owner).toBe('arewaolakunle');
-    expect(reloadedUser.object_state).toBe(ObjectState.frozen);
-    expect(loadedUser.object_state).toBe(ObjectState.deleted);
-
-    await userDelete.remove();
-    await user.remove();
+    await cleanRepo(user.id);
   });
 
   it('Should delete a pending create', async () => {
     const user = await dataRepo.create('arewaolakunle', mockUser());
-    const event = await dataRepo.delete('arewaolakunle', user.id);
-    const loadedUser = await dataRepo.internalRepo.byID(user._id, null, false);
+    await dataRepo.delete('arewaolakunle', user.id);
 
-    expect(event._id).toBe(user._id);
-    expect(event.metadata.objectState).toBe(ObjectState.created);
-    expect(event.metadata.owner).toBe('arewaolakunle');
-    expect(loadedUser).toBeNull();
+    expect(dataRepo.get('arewaolakunle', user.id)).rejects.toThrowError(
+      /User not found/
+    );
+    expect(dataRepo.get('someone', user.id)).rejects.toThrowError(
+      /User not found/
+    );
 
-    await user.remove();
+    await cleanRepo(user.id);
   });
 
-  it('Should undo a pending update', async () => {
-    const user = await dataRepo.internalRepo.create(
-      mockFrozenUser('arewaolakunle')
-    );
-    await dataRepo.internalRepo.create(
-      mockUnapprovedUpdate('arewaolakunle', user.id, 'nope@gmail.com')
-    );
+  it('Should create a new update', async () => {
+    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.update('arewaolakunle', user.id, {
+      email_address: 'nope@gmail.com'
+    });
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
 
-    const userUpdate = await dataRepo.delete('arewaolakunle', user.id);
+    // different strokes for the different folks
+    expect(writeUser.email_address).toBe('nope@gmail.com');
+    expect(readerUser.email_address).toBe('jasming@gmail.com');
 
-    expect(userUpdate.id).toBe(user.id);
-    expect(userUpdate.metadata.objectState).toBe(ObjectState.updated);
-    expect(userUpdate.metadata.owner).toBe('arewaolakunle');
-    expect(userUpdate.payload.email_address).toBe('nope@gmail.com');
+    // what can the user do
+    expect(writeUser.object_state).toBe(ObjectState.updated);
+    expect(readerUser.object_state).toBe(ObjectState.frozen);
 
-    await user.remove();
+    // cleanup afterwards
+    await cleanRepo(user.id);
+  });
+
+  it('Should patch an update', async () => {
+    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.update('arewaolakunle', user.id, {
+      email_address: 'nope@gmail.com'
+    });
+    await dataRepo.update('arewaolakunle', user.id, {
+      email_address: 'patch@gmail.com'
+    });
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
+
+    // different strokes for the different folks
+    expect(writeUser.email_address).toBe('patch@gmail.com');
+    expect(readerUser.email_address).toBe('jasming@gmail.com');
+
+    // cleanup afterwards
+    await cleanRepo(user.id);
+  });
+
+  it('Should undo an update', async () => {
+    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.update('arewaolakunle', user.id, {
+      email_address: 'nope@gmail.com'
+    });
+    await dataRepo.delete('arewaolakunle', user.id);
+
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
+
+    // on the same earth
+    expect(writeUser.email_address).toBe('jasming@gmail.com');
+    expect(readerUser.email_address).toBe('jasming@gmail.com');
+
+    // cleanup afterwards
+    await cleanRepo(user.id);
+  });
+
+  it('Should create a delete event', async () => {
+    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.delete('arewaolakunle', user.id);
+
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
+
+    // still the same data
+    expect(writeUser.email_address).toBe(readerUser.email_address);
+
+    // what can the user do
+    expect(writeUser.object_state).toBe(ObjectState.deleted);
+    expect(readerUser.object_state).toBe(ObjectState.frozen);
+
+    await cleanRepo(user.id);
   });
 
   it('Should undo a pending delete', async () => {
     const user = await dataRepo.internalRepo.create(mockApprovedUser());
-    const userDelete = await dataRepo.delete('arewaolakunle', user.id);
-    const removedDelete = await dataRepo.delete('arewaolakunle', user.id);
-    const refs = await dataRepo.internalRepo.all({
-      conditions: {
-        'metadata.reference': user.id
-      }
-    });
+    // delete and undo
+    await dataRepo.delete('arewaolakunle', user.id);
+    await dataRepo.delete('arewaolakunle', user.id);
 
-    expect(userDelete._id).toBe(removedDelete._id);
-    expect(removedDelete.metadata.objectState).toBe(ObjectState.deleted);
-    expect(refs.length).toBe(1);
-    expect(refs[0].metadata.objectState).toBe(ObjectState.stable);
+    const writeUser = await dataRepo.get('arewaolakunle', user.id);
+    const readerUser = await dataRepo.get('someone', user.id);
 
-    await user.remove();
+    // stabilised
+    expect(readerUser.object_state).toBe(ObjectState.stable);
+    expect(writeUser.object_state).toBe(readerUser.object_state);
+
+    await cleanRepo(user.id);
   });
 
-  it('Should return the am approved user', async () => {
+  it('Should return the an approved user', async () => {
     const user = await dataRepo.internalRepo.create(mockApprovedUser());
     const loadedUser = await dataRepo.byQuery('arewaolakunle', {
       fullname: 'Jasmine Joe'
     });
 
-    expect(loadedUser._id).toBe(user._id);
-    await user.remove();
+    expect(loadedUser.id).toBe(user.id);
+    await cleanRepo(user.id);
   });
 
   it('Should return the all approved users', async () => {
@@ -200,17 +205,17 @@ describe('ProVCS Repo Constraints', () => {
     expect(aUsers.length).toBe(3);
     expect(cUsers.length).toBe(3);
     expect(minusNew.length).toBe(2);
-    expect(minusNew[0].payload.fullname).toBe('Jasmine Joe');
-    expect(minusNew[1].payload.fullname).toBe('Jasmine Joe');
+    expect(minusNew[0].fullname).toBe('Jasmine Joe');
+    expect(minusNew[1].fullname).toBe('Jasmine Joe');
 
     const aUser = await dataRepo.all('chudioranu', {
       conditions: {
-        fullname: 'Is Stupid'
+        ...dataRepo.queryPathHelper('fullname', 'Is Stupid')
       }
     });
     expect(aUser.length).toBe(1);
-    expect(aUser[0].metadata.objectState).toBe(ObjectState.updated);
-    expect(aUser[0].payload.email_address).toBe('looj@rx.com');
+    expect(aUser[0].object_state).toBe(ObjectState.updated);
+    expect(aUser[0].email_address).toBe('looj@rx.com');
 
     await dataRepo.internalRepo.model.deleteMany({}).exec();
   });

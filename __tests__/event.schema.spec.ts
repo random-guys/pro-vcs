@@ -25,39 +25,25 @@ describe('Event Schema Rules', () => {
     await mongooseNs.disconnect();
   });
 
-  it('Should attach id,frozen and timestamps for toObject', async () => {
+  it('Should remove __owner and __payload for toObject', async () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
     const userObject = user.toObject();
 
-    expect(userObject.id).toBe(user.metadata.reference);
-    expect(userObject.object_state).toBe(user.metadata.objectState);
-    expect(userObject.fullname).toBe((<User>user.payload).fullname);
-    expect(userObject.created_at).toStrictEqual(user.created_at);
-    expect(userObject.updated_at).toStrictEqual(user.updated_at);
+    expect(userObject.object_state).toBe(ObjectState.created);
+    expect(userObject.__patch).toBeUndefined();
+    expect(userObject.__owner).toBeUndefined();
 
     // cleanup afterwards
     await user.remove();
   });
 
-  it('Should attach id and frozen for toJSON', async () => {
+  it('Should remove __owner and __payload for toJSON', async () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
     const userObject = user.toJSON();
 
-    expect(userObject.id).toBe(user.metadata.reference);
-    expect(userObject.object_state).toBe(user.metadata.objectState);
-    expect(userObject.fullname).toBe((<User>user.payload).fullname);
-    expect(userObject.created_at).toStrictEqual(user.created_at);
-    expect(userObject.updated_at).toStrictEqual(user.updated_at);
-
-    // cleanup afterwards
-    await user.remove();
-  });
-
-  it('should have virtuals id and frozen', async () => {
-    const user = await dataRepo.create(mockEmptyUserEvent());
-
-    expect(user.id).toBe(user.metadata.reference);
-    expect(user.object_state).toBe(ObjectState.created);
+    expect(userObject.object_state).toBe(ObjectState.created);
+    expect(userObject.__patch).toBeUndefined();
+    expect(userObject.__owner).toBeUndefined();
 
     // cleanup afterwards
     await user.remove();
