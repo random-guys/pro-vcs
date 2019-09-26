@@ -8,22 +8,15 @@ export enum ObjectState {
   stable = 'stable'
 }
 
-export interface PayloadModel {
-  _raw_id: string;
-  id: string;
-  created_at: Date;
-  updated_at: Date;
+export interface PayloadModel extends Model {
   object_state: ObjectState;
 }
 
 export interface EventModel<T extends PayloadModel> extends Model {
   object_state: ObjectState;
-  metadata: Metadata;
-  payload: T;
+  __owner: string;
+  __patch?: Partial<T>;
 }
 
-export interface Metadata {
-  reference: string;
-  owner?: string;
-  objectState: ObjectState;
-}
+export const asObject = <T extends PayloadModel>(x: EventModel<T>) =>
+  x.toObject();

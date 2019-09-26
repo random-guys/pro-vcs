@@ -3,6 +3,7 @@
 Database abstraction to simplify review request workflow
 
 ## How to install?
+
 Run `yarn add @random-guys/pro-vcs`
 
 ## How does it work?
@@ -10,6 +11,7 @@ Run `yarn add @random-guys/pro-vcs`
 ## TODO
 
 - [ ] [Less complex code](https://dave.cheney.net/2019/07/09/clear-is-better-than-clever)
+- [ ] Timestamps
 - [ ] Analysis for possible concurrency bugs
 - [ ] Split test files(specifically `event.repo.ts`)
 

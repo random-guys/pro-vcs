@@ -1,5 +1,5 @@
 import { publisher } from '@random-guys/eventbus';
-import { ObjectState, PayloadModel } from './event.model';
+import { ObjectState, EventModel, PayloadModel } from './event.model';
 
 export class HubProxy<T extends PayloadModel> {
   private queue = 'PROHUB_QUEUE';
@@ -15,7 +15,7 @@ export class HubProxy<T extends PayloadModel> {
     });
   }
 
-  async firePatch(reference: string, payload: T) {
+  async firePatch(reference: string, payload: EventModel<T>) {
     await publisher.queue(this.queue, {
       object_type: this.name,
       event_type: 'patch',
