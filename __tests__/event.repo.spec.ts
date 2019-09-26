@@ -1,14 +1,7 @@
 import { defaultMongoOpts, MongooseNamespace } from '@random-guys/bucket';
 import { publisher } from '@random-guys/eventbus';
 import mongoose from 'mongoose';
-import {
-  mockApprovedUser,
-  mockFrozenUser,
-  mockUser,
-  User,
-  UserSchema
-} from '../mocks/user';
-import { mockUnapprovedUpdate } from '../mocks/user/index';
+import { mockApprovedUser, mockUser, User, UserSchema } from '../mocks/user';
 import { EventRepository } from '../src';
 import { ObjectState } from '../src/event.model'; // test couldn't detect eventType from outside
 
@@ -33,9 +26,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   function cleanRepo(reference: string) {
-    return dataRepo.internalRepo.model
-      .deleteMany({ 'metadata.reference': reference })
-      .exec();
+    return dataRepo.internalRepo.destroy(reference, false);
   }
 
   it('Should add create metadata to a new event', async () => {
@@ -177,7 +168,7 @@ describe('ProVCS Repo Constraints', () => {
       fullname: 'Jasmine Joe'
     });
 
-    expect(loadedUser._raw_id).toBe(user._id);
+    expect(loadedUser.id).toBe(user.id);
     await cleanRepo(user.id);
   });
 
@@ -219,7 +210,7 @@ describe('ProVCS Repo Constraints', () => {
 
     const aUser = await dataRepo.all('chudioranu', {
       conditions: {
-        fullname: 'Is Stupid'
+        ...dataRepo.queryPathHelper('fullname', 'Is Stupid')
       }
     });
     expect(aUser.length).toBe(1);

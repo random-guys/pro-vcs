@@ -1,17 +1,15 @@
 import {
   BaseRepository,
-  ModelNotFoundError,
+  DuplicateModelError,
   MongooseNamespace,
-  Query,
-  DuplicateModelError
+  Query
 } from '@random-guys/bucket';
-import mapKeys from 'lodash/mapKeys';
 import startCase from 'lodash/startCase';
-import { EventModel, ObjectState, PayloadModel } from './event.model';
-import { EventSchema } from './event.schema';
-import { mongoSet } from './object.util';
-import { HubProxy } from './hub.proxy';
 import { SchemaDefinition } from 'mongoose';
+import { asObject, EventModel, ObjectState, PayloadModel } from './event.model';
+import { EventSchema } from './event.schema';
+import { HubProxy } from './hub.proxy';
+import { mongoSet } from './object.util';
 
 /**
  * This error is usually thrown when a user tries
@@ -50,23 +48,20 @@ export class EventRepository<T extends PayloadModel> {
     this.hub = new HubProxy(name);
   }
 
-  async create(owner: string, event: Partial<T>): Promise<T> {
+  async create(owner: string, data: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
-      metadata: { owner, object_state: ObjectState.created },
-      payload: event
+      object_state: ObjectState.created,
+      __owner: owner,
+      ...data
     });
     this.hub.fireCreate(newObject.id, newObject.object_state, {
-      payload: newObject.payload
+      payload: newObject.toObject()
     });
     return newObject.toObject();
   }
 
   async assertExists(query: object): Promise<void> {
-    const element = await this.internalRepo.byQuery(
-      this.payload(query),
-      null,
-      false
-    );
+    const element = await this.internalRepo.byQuery(query, null, false);
     if (element) {
       throw new DuplicateModelError(
         `The ${startCase(this.internalRepo.name)} already exists`
@@ -75,55 +70,24 @@ export class EventRepository<T extends PayloadModel> {
   }
 
   async get(user: string, reference: string): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery({
-      'metadata.reference': reference,
-      $nor: [
-        { 'metadata.owner': user, 'metadata.object_state': ObjectState.frozen }
-      ]
-    });
-
-    return this.onCreate(user, maybePending).toObject();
+    const maybePending = await this.internalRepo.byID(reference);
+    return this.markup(user, maybePending);
   }
 
-  async byQuery(user: string, query: any): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery(
-      this.getQuery(user, query)
-    );
-
-    return this.onCreate(user, maybePending).toObject();
+  async byQuery(user: string, query: object): Promise<T> {
+    const maybePending = await this.internalRepo.byQuery(query);
+    return this.markup(user, maybePending);
   }
 
   async all(user: string, query: Query = {}, allowNew = true): Promise<T[]> {
-    query.conditions = this.getQuery(user, query.conditions, allowNew);
+    if (!allowNew) {
+      query.conditions = {
+        ...query.conditions,
+        object_state: { $ne: ObjectState.created }
+      };
+    }
     const maybes = await this.internalRepo.all(query);
-    return maybes.map(e => this.onCreate(user, e).toObject());
-  }
-
-  protected getRelatedEvents(reference: string) {
-    return new Promise<EventModel<T>[]>((resolve, reject) => {
-      this.internalRepo.model
-        .find({ 'metadata.reference': reference })
-        .sort('created_at')
-        .exec((err, vals) => {
-          // proxy error
-          if (err) return reject(err);
-
-          // make sure model exists
-          if (!vals || vals.length === 0) {
-            return reject(
-              new ModelNotFoundError(
-                `There's no such ${startCase(this.internalRepo.name)}`
-              )
-            );
-          }
-
-          // watchout for more than 2 objects
-          if (vals.length > 2) {
-            return reject(new InconsistentState());
-          }
-          resolve(vals);
-        });
-    });
+    return maybes.map(e => this.markup(user, e));
   }
 
   async update(
@@ -131,247 +95,191 @@ export class EventRepository<T extends PayloadModel> {
     reference: string,
     update: Partial<T>
   ): Promise<T> {
-    const [stable, pending] = await this.getRelatedEvents(reference);
-    if (pending) {
-      switch (pending.metadata.object_state) {
-        case ObjectState.updated:
-          const patch = await this.inplaceUpdate(user, pending, update);
-          await this.hub.firePatch(reference, patch.payload);
-          return patch.toObject();
-        case ObjectState.deleted:
-          throw new InvalidOperation(
-            "Can't update an item up that is to be deleted"
-          );
-        default:
-          throw new InconsistentState();
-      }
-    }
-
-    let patch: EventModel<T>;
-    switch (stable.metadata.object_state) {
+    const data = await this.internalRepo.byID(reference);
+    switch (data.object_state) {
       case ObjectState.created:
-        patch = await this.inplaceUpdate(user, stable, update);
-        await this.hub.firePatch(reference, patch.payload);
-        return patch.toObject();
+      case ObjectState.updated:
+        const freshData = await this.inplaceUpdate(user, data, update);
+        await this.hub.firePatch(reference, freshData);
+        return this.markup(user, freshData);
+      case ObjectState.deleted:
+        throw new InvalidOperation(
+          "Can't update an item up that is to be deleted"
+        );
       case ObjectState.stable:
-        patch = await this.newUpdate(user, stable, update);
-        await this.hub.fireCreate(reference, patch.object_state, {
-          stale_payload: stable.payload,
-          fresh_payload: patch.payload
+        const newUpdate = await this.newUpdate(user, data, update);
+        await this.hub.fireCreate(reference, data.object_state, {
+          payload: data.toObject(),
+          update
         });
-        return patch.toObject();
+        return this.markup(user, newUpdate);
       default:
         throw new InconsistentState();
     }
   }
 
   async delete(user: string, reference: string): Promise<T> {
-    const [stable, pending] = await this.getRelatedEvents(reference);
-    if (pending) {
-      switch (pending.metadata.object_state) {
-        case ObjectState.updated:
-        case ObjectState.deleted:
-          const cleaned = await this.inplaceDelete(user, pending, stable._id);
-          await this.hub.fireClose(cleaned.id);
-          return cleaned.toObject();
-        default:
-          throw new InconsistentState();
-      }
-    }
-
-    switch (stable.metadata.object_state) {
+    const data = await this.internalRepo.byID(reference);
+    switch (data.object_state) {
       case ObjectState.created:
-        const cleaned = await this.inplaceDelete(user, stable);
-        await this.hub.fireClose(cleaned.id);
-        return cleaned.toObject();
+      case ObjectState.updated:
+      case ObjectState.deleted:
+        const freshData = await this.inplaceDelete(user, data);
+        await this.hub.fireClose(reference);
+        return this.markup(user, freshData);
       case ObjectState.stable:
-        const pendingDelete = await this.newDelete(user, stable, reference);
-        await this.hub.fireCreate(pendingDelete.id, pendingDelete.object_state);
-        return pendingDelete.toObject();
+        const deletedData = await this.newDelete(user, data);
+        await this.hub.fireCreate(deletedData.id, deletedData.object_state);
+        return this.markup(user, deletedData);
       default:
         throw new InconsistentState();
     }
   }
 
   async merge(reference: string): Promise<T | void> {
-    const [stable, pending] = await this.getRelatedEvents(reference);
-    if (pending) {
-      switch (pending.metadata.object_state) {
-        case ObjectState.updated:
-          await stable.remove();
-          return (await this.stabilise(pending._id)).toObject();
-        case ObjectState.deleted:
-          return this.clean(reference);
-        default:
-          throw new InconsistentState();
-      }
-    }
-
-    switch (stable.metadata.object_state) {
+    const data = await this.internalRepo.byID(reference);
+    switch (data.object_state) {
       case ObjectState.created:
-        return (await this.stabilise(stable._id)).toObject();
+        return this.stabilise(data).then(asObject);
+      case ObjectState.updated:
+        return this.internalRepo
+          .atomicUpdate(
+            { _id: reference, object_state: ObjectState.updated },
+            { $set: data.__patch }
+          )
+          .then(asObject);
+      case ObjectState.deleted:
+        return this.internalRepo
+          .destroy({
+            _id: reference,
+            object_state: ObjectState.deleted
+          })
+          .then(asObject);
       case ObjectState.stable:
-        return stable.toObject();
+        throw new InvalidOperation('Cannot merge a stable object');
       default:
         throw new InconsistentState();
     }
   }
 
   async reject(reference: string): Promise<T> {
-    const [stable, pending] = await this.getRelatedEvents(reference);
-    if (pending) {
-      switch (pending.metadata.object_state) {
-        case ObjectState.updated:
-        case ObjectState.deleted:
-          await pending.remove();
-          return (await this.stabilise(stable._id)).toObject();
-        default:
-          throw new InconsistentState();
-      }
-    }
-
-    switch (stable.metadata.object_state) {
+    const data = await this.internalRepo.byID(reference);
+    switch (data.object_state) {
       case ObjectState.created:
-        return (await stable.remove()).toObject();
+        return data.remove().then(asObject);
+      case ObjectState.updated:
+      case ObjectState.deleted:
+        return this.stabilise(data).then(asObject);
       case ObjectState.stable:
-        return stable.toObject();
+        throw new InvalidOperation('Cannot reject a stable object');
       default:
         throw new InconsistentState();
     }
   }
 
-  protected stabilise(id: string) {
-    return this.internalRepo.atomicUpdate(id, {
-      $set: {
-        'metadata.object_state': ObjectState.stable,
-        'metadata.owner': null
+  protected stabilise(data: EventModel<T>) {
+    return this.internalRepo.atomicUpdate(
+      { _id: data.id, object_state: data.object_state },
+      {
+        $set: {
+          object_state: ObjectState.stable,
+          __owner: null,
+          __patch: null
+        }
       }
-    });
-  }
-
-  protected async clean(reference: string) {
-    await this.internalRepo.model
-      .deleteMany({ 'metadata.reference': reference })
-      .exec();
+    );
   }
 
   protected inplaceUpdate(
     user: string,
-    oldUpdate: EventModel<T>,
-    newUpdate: Partial<T>
+    data: EventModel<T>,
+    partial: Partial<T>
   ) {
-    if (oldUpdate.metadata.owner !== user) {
+    if (data.__owner !== user) {
       throw new InvalidOperation(
         `Can't update an unapproved ${startCase(this.internalRepo.name)}`
       );
     }
+
     return this.internalRepo.atomicUpdate(
-      oldUpdate._id,
-      this.payload(newUpdate)
+      {
+        object_state: data.object_state,
+        _id: data._id
+      },
+      {
+        $set:
+          data.object_state === ObjectState.created
+            ? partial
+            : {
+                __patch: mongoSet(data.__patch, partial)
+              }
+      }
     );
   }
 
-  protected inplaceDelete(
-    user: string,
-    pending: EventModel<T>,
-    stableId?: string
-  ) {
-    if (pending.metadata.owner !== user) {
+  protected inplaceDelete(user: string, data: EventModel<T>) {
+    if (data.__owner !== user) {
       throw new InvalidOperation(
         `Can't update an unapproved ${startCase(this.internalRepo.name)}`
       );
     }
 
-    if (stableId) {
-      // unfreeze stable version
-      this.internalRepo.atomicUpdate(stableId, {
+    if (data.object_state === ObjectState.created) {
+      return data.remove();
+    }
+
+    // unfreeze stable version
+    return this.stabilise(data);
+  }
+
+  protected newUpdate(user: string, data: EventModel<T>, update: Partial<T>) {
+    // mark object as frozen
+    return this.internalRepo.atomicUpdate(
+      {
+        _id: data.id,
+        object_state: ObjectState.stable
+      },
+      {
         $set: {
-          'metadata.object_state': ObjectState.stable,
-          'metadata.owner': null
+          object_state: ObjectState.updated,
+          __owner: user,
+          __patch: update
         }
-      });
-    }
-
-    // cleanup pending version
-    return pending.remove();
+      }
+    );
   }
 
-  protected newUpdate(user: string, stable: EventModel<T>, update: Partial<T>) {
+  protected newDelete(user: string, data: EventModel<T>) {
     // mark object as frozen
-    this.internalRepo.atomicUpdate(stable._id, {
-      $set: {
-        'metadata.object_state': ObjectState.frozen,
-        'metadata.owner': user
-      }
-    });
-
-    // create a new patch to be applied once approved
-    return this.internalRepo.create({
-      metadata: {
-        owner: user,
-        reference: stable.id,
-        object_state: ObjectState.updated
+    return this.internalRepo.atomicUpdate(
+      {
+        _id: data.id,
+        object_state: ObjectState.stable
       },
-      payload: mongoSet(stable.payload, update)
-    });
+      {
+        $set: {
+          object_state: ObjectState.deleted,
+          __owner: user
+        }
+      }
+    );
   }
 
-  protected newDelete(user: string, stable: EventModel<T>, reference: string) {
-    // mark object as frozen
-    this.internalRepo.atomicUpdate(stable._id, {
-      $set: {
-        'metadata.object_state': ObjectState.frozen,
-        'metadata.owner': user
-      }
-    });
-
-    // create a new event to signify delete
-    return this.internalRepo.create({
-      metadata: {
-        owner: user,
-        object_state: ObjectState.deleted,
-        reference
-      },
-      payload: stable.payload
-    });
-  }
-
-  protected onCreate(user: string, maybePending: EventModel<T>) {
-    if (
-      maybePending.metadata.object_state === ObjectState.created &&
-      maybePending.metadata.owner !== user
-    ) {
-      maybePending.metadata.object_state = ObjectState.frozen;
+  protected markup(user: string, data: EventModel<T>) {
+    if (data.object_state !== ObjectState.stable && data.__owner !== user) {
+      data.object_state = ObjectState.frozen;
     }
-    return maybePending;
+
+    if (data.object_state === ObjectState.updated && data.__owner === user) {
+      data = mongoSet(data, data.__patch);
+    }
+
+    return data.toObject();
   }
 
-  protected getQuery(user: string, query: any, allowNew = true) {
-    const orQuery = [
-      {
-        'metadata.owner': user,
-        'metadata.object_state': { $ne: ObjectState.frozen }
-      },
-      {
-        'metadata.owner': { $ne: user },
-        'metadata.object_state': ObjectState.frozen
-      },
-      {
-        'metadata.object_state': ObjectState.stable
-      }
-    ];
-    if (allowNew) {
-      orQuery.push({ 'metadata.object_state': ObjectState.created });
-    }
+  queryPathHelper(path: string, value: any) {
     return {
-      ...this.payload(query),
-      $or: orQuery
+      $or: [{ [path]: value }, { [`__patch.${path}`]: value }]
     };
-  }
-
-  protected payload(data: object) {
-    return mapKeys(data, (_v, k) => {
-      return `payload.${k}`;
-    });
   }
 }
