@@ -21,6 +21,7 @@ export interface Check {
 export interface MergerConfig {
   name: string;
   security_secret: string;
+  security_scheme: string;
   app_port: number;
   mongodb_url?: string;
   redis_url?: string;
@@ -53,7 +54,7 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   });
 
   const mergerApp = express();
-  mergerApp.use(token(config.security_secret, 'SterlingPro'));
+  mergerApp.use(token(config.security_secret, config.security_scheme));
   setupAppRoutes(config.name, mergerApp, merger);
 
   const httpServer = mergerApp.listen(config.app_port);
