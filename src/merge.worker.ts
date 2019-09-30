@@ -4,12 +4,12 @@ import {
   MongooseNamespace,
   secureMongoOpts
 } from '@random-guys/bucket';
-import { token } from '@random-guys/sp-auth';
 import Logger, { createLogger } from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import Redis, { Redis as RedisType } from 'ioredis';
 import kebabCase from 'lodash/kebabCase';
 import mongoose from 'mongoose';
+import { tokenOnly } from '@random-guys/sp-auth';
 
 export interface ICanMerge {
   onApprove(req: Request, reference: string): Promise<void>;
@@ -117,7 +117,7 @@ function setupAppRoutes(
   merger: ICanMerge
 ) {
   const parent = rootRoute(config.name);
-  const authToken = token(config.security_secret, config.security_scheme);
+  const authToken = tokenOnly(config.security_secret, config.security_scheme);
 
   mergerApp.get('/', (req: Request, res: Response) => {
     res.status(200).json({ status: 'UP' });

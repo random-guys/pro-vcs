@@ -40,7 +40,7 @@
   "dependencies": {
     "@random-guys/bucket": "^0.5.1",
     "@random-guys/eventbus": "^2.0.1",
-    "@random-guys/sp-auth": "^3.0.2",
+    "@random-guys/sp-auth": "^3.1.1",
     "amqplib": "^0.5.3",
     "bunyan": "^1.8.12",
     "deep-diff": "^1.0.2",

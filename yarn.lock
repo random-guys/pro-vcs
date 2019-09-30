@@ -310,10 +310,10 @@
     bunyan "^1.8.12"
     redis "^2.8.0"
 
-"@random-guys/sp-auth@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@random-guys/sp-auth/-/sp-auth-3.0.2.tgz#91b7449b75da986d598bfa5811730336a3f367e2"
-  integrity sha512-XFKxvasojopNBmshx0YAo5OONiWfnfMAbgay9Ay8j5tPAuTGvrw3gFCvgrViNMJV3n9XOiXZL49OCvfv01tXZA==
+"@random-guys/sp-auth@^3.1.1":
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/@random-guys/sp-auth/-/sp-auth-3.1.1.tgz#05b07de112719e49befbf24e673c1294375e875e"
+  integrity sha512-NM1JgfVeQGuTnxDIOpzYrqLwpk4vrJbDim8wxDs2qwirmjJoHWiQTXIS4l5SjMxMrogntj90X1ImfQBKhxB1/Q==
   dependencies:
     "@random-guys/memory" "^0.2.1"
     "@types/ioredis" "^4.0.17"
