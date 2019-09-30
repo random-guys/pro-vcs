@@ -1,10 +1,15 @@
-import { MongooseNamespace } from '@random-guys/bucket';
+import {
+  defaultMongoOpts,
+  MongoConfig,
+  MongooseNamespace,
+  secureMongoOpts
+} from '@random-guys/bucket';
 import Logger, { createLogger } from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import Redis, { Redis as RedisType } from 'ioredis';
-import snakeCase from 'lodash/snakeCase';
+import kebabCase from 'lodash/kebabCase';
 import mongoose from 'mongoose';
-import { token } from '@random-guys/sp-auth';
+import { tokenOnly } from '@random-guys/sp-auth';
 
 export interface ICanMerge {
   onApprove(req: Request, reference: string): Promise<void>;
@@ -18,11 +23,12 @@ export interface Check {
   message?: string;
 }
 
-export interface MergerConfig {
+export interface MergerConfig extends MongoConfig {
   name: string;
   security_secret: string;
+  security_scheme: string;
+  secure_db: boolean;
   app_port: number;
-  mongodb_url?: string;
   redis_url?: string;
   postSetup?: (context: Context) => Promise<void>;
 }
@@ -53,20 +59,17 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   });
 
   const mergerApp = express();
-  mergerApp.use(token(config.security_secret, 'SterlingPro'));
-  setupAppRoutes(config.name, mergerApp, merger);
+  setupAppRoutes(config, mergerApp, merger);
 
   const httpServer = mergerApp.listen(config.app_port);
   logger.info(`🌋 Merger running on port ${config.app_port}`);
 
   // connect to mongodb if need be
-  if (config.mongodb_url) {
-    mongooseCon = await mongoose.connect(config.mongodb_url, {
-      useNewUrlParser: true,
-      useCreateIndex: true
-    });
-    logger.info('📦  MongoDB Connected!');
-  }
+  mongooseCon = await mongoose.connect(
+    config.mongodb_url,
+    config.secure_db ? defaultMongoOpts : secureMongoOpts(config)
+  );
+  logger.info('📦  MongoDB Connected!');
 
   // connect to redis if need be
   if (config.redis_url) {
@@ -88,11 +91,10 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
     try {
       logger.info(`Shutting down ${config.name} worker`);
 
-      if (mongooseCon) await mongooseCon.disconnect();
+      await mongooseCon.disconnect();
+      httpServer.close();
 
       if (redis) await redis.quit();
-
-      if (httpServer) httpServer.close();
     } catch (err) {
       logger.error(
         err,
@@ -109,13 +111,19 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   return stop;
 }
 
-function setupAppRoutes(name: string, mergerApp: Express, merger: ICanMerge) {
-  const parent = snakeCase(name);
+function setupAppRoutes(
+  config: MergerConfig,
+  mergerApp: Express,
+  merger: ICanMerge
+) {
+  const parent = rootRoute(config.name);
+  const authToken = tokenOnly(config.security_secret, config.security_scheme);
+
   mergerApp.get('/', (req: Request, res: Response) => {
     res.status(200).json({ status: 'UP' });
   });
 
-  mergerApp.get(`/${parent}/:reference/check`, async (req, res) => {
+  mergerApp.get(`/${parent}/:reference/check`, authToken, async (req, res) => {
     try {
       const checks = await merger.onCheck(req, req.params.reference);
       jsend(res, 200, checks);
@@ -124,23 +132,35 @@ function setupAppRoutes(name: string, mergerApp: Express, merger: ICanMerge) {
     }
   });
 
-  mergerApp.post(`/${parent}/:reference/approve`, async (req, res) => {
-    try {
-      await merger.onApprove(req, req.params.reference);
-      jsend(res, 200, null);
-    } catch (err) {
-      jsendError(res, err.code || 500, err.message);
+  mergerApp.post(
+    `/${parent}/:reference/approve`,
+    authToken,
+    async (req, res) => {
+      try {
+        await merger.onApprove(req, req.params.reference);
+        jsend(res, 200, null);
+      } catch (err) {
+        jsendError(res, err.code || 500, err.message);
+      }
     }
-  });
+  );
 
-  mergerApp.post(`/${parent}/:reference/reject`, async (req, res) => {
-    try {
-      await merger.onReject(req, req.params.reference);
-      jsend(res, 200, null);
-    } catch (err) {
-      jsendError(res, err.code || 500, err.message);
+  mergerApp.post(
+    `/${parent}/:reference/reject`,
+    authToken,
+    async (req, res) => {
+      try {
+        await merger.onReject(req, req.params.reference);
+        jsend(res, 200, null);
+      } catch (err) {
+        jsendError(res, err.code || 500, err.message);
+      }
     }
-  });
+  );
+}
+
+export function rootRoute(name: string) {
+  return kebabCase(name);
 }
 
 function jsend(res: Response, code: number, data: any) {

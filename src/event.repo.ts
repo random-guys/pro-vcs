@@ -60,6 +60,14 @@ export class EventRepository<T extends PayloadModel> {
     return newObject.toObject();
   }
 
+  async createApproved(data: Partial<T>): Promise<T> {
+    const newObject = await this.internalRepo.create({
+      object_state: ObjectState.stable,
+      ...data
+    });
+    return newObject.toObject();
+  }
+
   async assertExists(query: object): Promise<void> {
     const element = await this.internalRepo.byQuery(query, null, false);
     if (element) {
