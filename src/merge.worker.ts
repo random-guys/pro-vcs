@@ -5,6 +5,11 @@ import {
   secureMongoOpts
 } from '@random-guys/bucket';
 import Logger, { createLogger } from 'bunyan';
+import {
+  logRequests,
+  logResponse,
+  logError
+} from '@random-guys/express-bunyan';
 import express, { Express, Request, Response } from 'express';
 import Redis, { Redis as RedisType } from 'ioredis';
 import kebabCase from 'lodash/kebabCase';
@@ -59,7 +64,7 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   });
 
   const mergerApp = express();
-  setupAppRoutes(config, mergerApp, merger);
+  setupAppRoutes(config, logger, mergerApp, merger);
 
   const httpServer = mergerApp.listen(config.app_port);
   logger.info(`🌋 Merger running on port ${config.app_port}`);
@@ -67,7 +72,7 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   // connect to mongodb if need be
   mongooseCon = await mongoose.connect(
     config.mongodb_url,
-    config.secure_db ? defaultMongoOpts : secureMongoOpts(config)
+    config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
   );
   logger.info('📦  MongoDB Connected!');
 
@@ -113,22 +118,37 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
 
 function setupAppRoutes(
   config: MergerConfig,
+  logger: Logger,
   mergerApp: Express,
   merger: ICanMerge
 ) {
   const parent = rootRoute(config.name);
   const authToken = tokenOnly(config.security_secret, config.security_scheme);
 
+  // basic middleware
+  mergerApp.use(express.json());
+  mergerApp.use(express.urlencoded({ extended: false }));
+
+  // log all requests
+  mergerApp.use(logRequests(logger));
+
+  // status checks
   mergerApp.get('/', (req: Request, res: Response) => {
     res.status(200).json({ status: 'UP' });
+  });
+
+  // register 404 route handler
+  mergerApp.use((req, res, _next) => {
+    res.status(404).send("Whoops! Route doesn't exist.");
+    logResponse(logger, req, res);
   });
 
   mergerApp.get(`/${parent}/:reference/check`, authToken, async (req, res) => {
     try {
       const checks = await merger.onCheck(req, req.params.reference);
-      jsend(res, 200, checks);
+      jsend(req, res, checks);
     } catch (err) {
-      jsendError(res, err.code || 500, err.message);
+      jsendError(req, res, err);
     }
   });
 
@@ -138,9 +158,9 @@ function setupAppRoutes(
     async (req, res) => {
       try {
         await merger.onApprove(req, req.params.reference);
-        jsend(res, 200, null);
+        jsend(req, res, null);
       } catch (err) {
-        jsendError(res, err.code || 500, err.message);
+        jsendError(req, res, err);
       }
     }
   );
@@ -151,22 +171,30 @@ function setupAppRoutes(
     async (req, res) => {
       try {
         await merger.onReject(req, req.params.reference);
-        jsend(res, 200, null);
+        jsend(req, res, null);
       } catch (err) {
-        jsendError(res, err.code || 500, err.message);
+        jsendError(req, res, err);
       }
     }
   );
+
+  function jsend(req: Request, res: Response, data: any) {
+    res.status(200).json({ status: 'error', data, code: 200 });
+    logResponse(logger, req, res);
+  }
+
+  function jsendError(req: Request, res: Response, err: Error) {
+    const code = err['code'] || 500;
+    res.status(code).json({
+      status: 'error',
+      data: null,
+      message: err.message,
+      code
+    });
+    logError(logger, err, req, res);
+  }
 }
 
 export function rootRoute(name: string) {
   return kebabCase(name);
-}
-
-function jsend(res: Response, code: number, data: any) {
-  res.status(code).json({ status: 'error', data, code });
-}
-
-function jsendError(res: Response, code: number, message: string) {
-  res.status(code).json({ status: 'error', data: null, message, code });
 }
