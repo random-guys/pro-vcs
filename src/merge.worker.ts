@@ -8,7 +8,8 @@ import Logger, { createLogger } from 'bunyan';
 import {
   logRequests,
   logResponse,
-  logError
+  logError,
+  createRequestSerializer
 } from '@random-guys/express-bunyan';
 import express, { Express, Request, Response } from 'express';
 import Redis, { Redis as RedisType } from 'ioredis';
@@ -59,7 +60,9 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   const logger = createLogger({
     name: config.name,
     serializers: {
-      err: Logger.stdSerializers.err
+      err: Logger.stdSerializers.err,
+      res: Logger.stdSerializers.res,
+      req: createRequestSerializer('password')
     }
   });
 
