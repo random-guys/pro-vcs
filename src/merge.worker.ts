@@ -137,12 +137,6 @@ function setupAppRoutes(
     res.status(200).json({ status: 'UP' });
   });
 
-  // register 404 route handler
-  mergerApp.use((req, res, _next) => {
-    res.status(404).send("Whoops! Route doesn't exist.");
-    logResponse(logger, req, res);
-  });
-
   mergerApp.get(`/${parent}/:reference/check`, authToken, async (req, res) => {
     try {
       const checks = await merger.onCheck(req, req.params.reference);
@@ -177,6 +171,12 @@ function setupAppRoutes(
       }
     }
   );
+
+  // register 404 route handler
+  mergerApp.use((req, res, _next) => {
+    res.status(404).send("Whoops! Route doesn't exist.");
+    logResponse(logger, req, res);
+  });
 
   function jsend(req: Request, res: Response, data: any) {
     res.status(200).json({ status: 'error', data, code: 200 });
