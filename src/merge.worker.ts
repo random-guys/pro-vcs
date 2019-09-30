@@ -2,7 +2,7 @@ import { MongooseNamespace } from '@random-guys/bucket';
 import Logger, { createLogger } from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import Redis, { Redis as RedisType } from 'ioredis';
-import snakeCase from 'lodash/snakeCase';
+import kebabCase from 'lodash/kebabCase';
 import mongoose from 'mongoose';
 import { token } from '@random-guys/sp-auth';
 
@@ -114,7 +114,7 @@ function setupAppRoutes(
   mergerApp: Express,
   merger: ICanMerge
 ) {
-  const parent = snakeCase(config.name);
+  const parent = rootRoute(config.name);
   const authToken = token(config.security_secret, config.security_scheme);
 
   mergerApp.get('/', (req: Request, res: Response) => {
@@ -155,6 +155,10 @@ function setupAppRoutes(
       }
     }
   );
+}
+
+export function rootRoute(name: string) {
+  return kebabCase(name);
 }
 
 function jsend(res: Response, code: number, data: any) {
