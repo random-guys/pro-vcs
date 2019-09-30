@@ -1,10 +1,15 @@
-import { MongooseNamespace } from '@random-guys/bucket';
+import {
+  defaultMongoOpts,
+  MongoConfig,
+  MongooseNamespace,
+  secureMongoOpts
+} from '@random-guys/bucket';
+import { token } from '@random-guys/sp-auth';
 import Logger, { createLogger } from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import Redis, { Redis as RedisType } from 'ioredis';
 import kebabCase from 'lodash/kebabCase';
 import mongoose from 'mongoose';
-import { token } from '@random-guys/sp-auth';
 
 export interface ICanMerge {
   onApprove(req: Request, reference: string): Promise<void>;
@@ -18,12 +23,12 @@ export interface Check {
   message?: string;
 }
 
-export interface MergerConfig {
+export interface MergerConfig extends MongoConfig {
   name: string;
   security_secret: string;
   security_scheme: string;
+  secure_db: boolean;
   app_port: number;
-  mongodb_url?: string;
   redis_url?: string;
   postSetup?: (context: Context) => Promise<void>;
 }
@@ -60,13 +65,11 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   logger.info(`🌋 Merger running on port ${config.app_port}`);
 
   // connect to mongodb if need be
-  if (config.mongodb_url) {
-    mongooseCon = await mongoose.connect(config.mongodb_url, {
-      useNewUrlParser: true,
-      useCreateIndex: true
-    });
-    logger.info('📦  MongoDB Connected!');
-  }
+  mongooseCon = await mongoose.connect(
+    config.mongodb_url,
+    config.secure_db ? defaultMongoOpts : secureMongoOpts(config)
+  );
+  logger.info('📦  MongoDB Connected!');
 
   // connect to redis if need be
   if (config.redis_url) {
@@ -88,11 +91,10 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
     try {
       logger.info(`Shutting down ${config.name} worker`);
 
-      if (mongooseCon) await mongooseCon.disconnect();
+      await mongooseCon.disconnect();
+      httpServer.close();
 
       if (redis) await redis.quit();
-
-      if (httpServer) httpServer.close();
     } catch (err) {
       logger.error(
         err,

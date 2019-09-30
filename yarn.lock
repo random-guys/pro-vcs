@@ -285,10 +285,10 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^12.0.9"
 
-"@random-guys/bucket@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@random-guys/bucket/-/bucket-0.5.0.tgz#d86d020cfcf23f9cd134ad36a95ce86eeedc33c0"
-  integrity sha512-UEgET005Jp+P5w++JwpQCyHDVNr5n7hFwzjHJ1RwT4LrPYYA9YJIiQ1MaUke0p+/mp2LdI7LYmfGr9L2IG1uew==
+"@random-guys/bucket@^0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@random-guys/bucket/-/bucket-0.5.1.tgz#07ee4327c25937eb1767a36ddba01bbc975a9ea9"
+  integrity sha512-pszT14lGooCLsiyEyjEdswK3mAhQI7t3uTmJ6tBj9+icVwEpj4ZLvzlcz6sPJB6vnvl0C+IfTTVygkp5f19n3g==
   dependencies:
     http-status-codes "^1.3.2"
     mongoose "^5.7.1"

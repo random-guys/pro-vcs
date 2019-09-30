@@ -38,7 +38,7 @@
     "typescript": "^3.5.2"
   },
   "dependencies": {
-    "@random-guys/bucket": "^0.5.0",
+    "@random-guys/bucket": "^0.5.1",
     "@random-guys/eventbus": "^2.0.1",
     "@random-guys/sp-auth": "^3.0.2",
     "amqplib": "^0.5.3",
