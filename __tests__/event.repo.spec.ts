@@ -1,7 +1,7 @@
 import { defaultMongoOpts, MongooseNamespace } from '@random-guys/bucket';
 import { publisher } from '@random-guys/eventbus';
 import mongoose from 'mongoose';
-import { mockApprovedUser, mockUser, User, UserSchema } from '../mocks/user';
+import { mockUser, User, UserSchema } from '../mocks/user';
 import { EventRepository } from '../src';
 import { ObjectState } from '../src/event.model'; // test couldn't detect eventType from outside
 
@@ -73,7 +73,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should create a new update', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const user = await dataRepo.createApproved(mockUser());
     await dataRepo.update('arewaolakunle', user.id, {
       email_address: 'nope@gmail.com'
     });
@@ -93,7 +93,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should patch an update', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const user = await dataRepo.createApproved(mockUser());
     await dataRepo.update('arewaolakunle', user.id, {
       email_address: 'nope@gmail.com'
     });
@@ -112,7 +112,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should undo an update', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const user = await dataRepo.createApproved(mockUser());
     await dataRepo.update('arewaolakunle', user.id, {
       email_address: 'nope@gmail.com'
     });
@@ -130,7 +130,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should create a delete event', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const user = await dataRepo.createApproved(mockUser());
     await dataRepo.delete('arewaolakunle', user.id);
 
     const writeUser = await dataRepo.get('arewaolakunle', user.id);
@@ -147,7 +147,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should undo a pending delete', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const user = await dataRepo.createApproved(mockUser());
     // delete and undo
     await dataRepo.delete('arewaolakunle', user.id);
     await dataRepo.delete('arewaolakunle', user.id);
@@ -163,7 +163,7 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should return the an approved user', async () => {
-    const user = await dataRepo.internalRepo.create(mockApprovedUser());
+    const user = await dataRepo.createApproved(mockUser());
     const loadedUser = await dataRepo.byQuery('arewaolakunle', {
       fullname: 'Jasmine Joe'
     });
@@ -173,9 +173,9 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should return the all approved users', async () => {
-    await dataRepo.internalRepo.create(mockApprovedUser());
-    await dataRepo.internalRepo.create(mockApprovedUser());
-    await dataRepo.internalRepo.create(mockApprovedUser());
+    await dataRepo.createApproved(mockUser());
+    await dataRepo.createApproved(mockUser());
+    await dataRepo.createApproved(mockUser());
     const users = await dataRepo.all('arewaolakunle', {
       conditions: {
         fullname: 'Jasmine Joe'
@@ -187,12 +187,8 @@ describe('ProVCS Repo Constraints', () => {
   });
 
   it('Should return users based on who asked', async () => {
-    const nok = await dataRepo.internalRepo.create(
-      mockApprovedUser('nok@ru.com')
-    );
-    const looj = await dataRepo.internalRepo.create(
-      mockApprovedUser('looj@rx.com')
-    );
+    const nok = await dataRepo.createApproved(mockUser('nok@ru.com'));
+    const looj = await dataRepo.createApproved(mockUser('looj@rx.com'));
     await dataRepo.create('arewaolakunle', mockUser());
 
     await dataRepo.update('arewaolakunle', nok.id, { fullname: 'Wakanda' });
