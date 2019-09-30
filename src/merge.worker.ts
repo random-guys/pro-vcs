@@ -182,7 +182,7 @@ function setupAppRoutes(
   });
 
   function jsend(req: Request, res: Response, data: any) {
-    res.status(200).json({ status: 'error', data, code: 200 });
+    res.status(200).json({ status: 'success', data, code: 200 });
     logResponse(logger, req, res);
   }
 
