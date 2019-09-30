@@ -67,7 +67,7 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   // connect to mongodb if need be
   mongooseCon = await mongoose.connect(
     config.mongodb_url,
-    config.secure_db ? defaultMongoOpts : secureMongoOpts(config)
+    config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
   );
   logger.info('📦  MongoDB Connected!');
 
