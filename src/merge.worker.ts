@@ -54,8 +54,7 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   });
 
   const mergerApp = express();
-  mergerApp.use(token(config.security_secret, config.security_scheme));
-  setupAppRoutes(config.name, mergerApp, merger);
+  setupAppRoutes(config, mergerApp, merger);
 
   const httpServer = mergerApp.listen(config.app_port);
   logger.info(`🌋 Merger running on port ${config.app_port}`);
@@ -110,13 +109,19 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   return stop;
 }
 
-function setupAppRoutes(name: string, mergerApp: Express, merger: ICanMerge) {
-  const parent = snakeCase(name);
+function setupAppRoutes(
+  config: MergerConfig,
+  mergerApp: Express,
+  merger: ICanMerge
+) {
+  const parent = snakeCase(config.name);
+  const authToken = token(config.security_secret, config.security_scheme);
+
   mergerApp.get('/', (req: Request, res: Response) => {
     res.status(200).json({ status: 'UP' });
   });
 
-  mergerApp.get(`/${parent}/:reference/check`, async (req, res) => {
+  mergerApp.get(`/${parent}/:reference/check`, authToken, async (req, res) => {
     try {
       const checks = await merger.onCheck(req, req.params.reference);
       jsend(res, 200, checks);
@@ -125,23 +130,31 @@ function setupAppRoutes(name: string, mergerApp: Express, merger: ICanMerge) {
     }
   });
 
-  mergerApp.post(`/${parent}/:reference/approve`, async (req, res) => {
-    try {
-      await merger.onApprove(req, req.params.reference);
-      jsend(res, 200, null);
-    } catch (err) {
-      jsendError(res, err.code || 500, err.message);
+  mergerApp.post(
+    `/${parent}/:reference/approve`,
+    authToken,
+    async (req, res) => {
+      try {
+        await merger.onApprove(req, req.params.reference);
+        jsend(res, 200, null);
+      } catch (err) {
+        jsendError(res, err.code || 500, err.message);
+      }
     }
-  });
+  );
 
-  mergerApp.post(`/${parent}/:reference/reject`, async (req, res) => {
-    try {
-      await merger.onReject(req, req.params.reference);
-      jsend(res, 200, null);
-    } catch (err) {
-      jsendError(res, err.code || 500, err.message);
+  mergerApp.post(
+    `/${parent}/:reference/reject`,
+    authToken,
+    async (req, res) => {
+      try {
+        await merger.onReject(req, req.params.reference);
+        jsend(res, 200, null);
+      } catch (err) {
+        jsendError(res, err.code || 500, err.message);
+      }
     }
-  });
+  );
 }
 
 function jsend(res: Response, code: number, data: any) {

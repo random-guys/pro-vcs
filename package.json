@@ -29,7 +29,7 @@
     "@types/ioredis": "^4.0.13",
     "@types/jest": "^24.0.14",
     "@types/lodash": "^4.14.136",
-    "@types/mongoose": "^5.5.9",
+    "@types/mongoose": "^5.5.18",
     "@types/supertest": "^2.0.7",
     "@types/uuid": "^3.4.5",
     "jest": "^24.8.0",
@@ -38,7 +38,7 @@
     "typescript": "^3.5.2"
   },
   "dependencies": {
-    "@random-guys/bucket": "^0.4.0",
+    "@random-guys/bucket": "^0.5.0",
     "@random-guys/eventbus": "^2.0.1",
     "@random-guys/sp-auth": "^3.0.2",
     "amqplib": "^0.5.3",
