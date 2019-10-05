@@ -196,13 +196,14 @@ describe('ProVCS Repo Constraints', () => {
 
     const aUsers = await dataRepo.all('arewaolakunle');
     const cUsers = await dataRepo.all('chudioranu');
-    const minusNew = await dataRepo.all('nobody', {}, false);
+    const withNew = await dataRepo.all('nobody', {}, true);
 
-    expect(aUsers.length).toBe(3);
-    expect(cUsers.length).toBe(3);
-    expect(minusNew.length).toBe(2);
-    expect(minusNew[0].fullname).toBe('Jasmine Joe');
-    expect(minusNew[1].fullname).toBe('Jasmine Joe');
+    expect(aUsers.length).toBe(2);
+    expect(cUsers.length).toBe(2);
+    expect(withNew.length).toBe(3);
+    expect(
+      withNew.find(x => x.email_address === 'jasming@gmail.com')
+    ).toBeDefined();
 
     const aUser = await dataRepo.all('chudioranu', {
       conditions: {

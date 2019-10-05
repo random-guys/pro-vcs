@@ -87,7 +87,7 @@ export class EventRepository<T extends PayloadModel> {
     return this.markup(user, maybePending);
   }
 
-  async all(user: string, query: Query = {}, allowNew = true): Promise<T[]> {
+  async all(user: string, query: Query = {}, allowNew = false): Promise<T[]> {
     if (!allowNew) {
       query.conditions = {
         ...query.conditions,
