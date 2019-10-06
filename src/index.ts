@@ -1,3 +1,4 @@
+import 'reflect-metadata'; // all because of siber
 export * from './event.model';
 export * from './event.repo';
 export * from './event.schema';
