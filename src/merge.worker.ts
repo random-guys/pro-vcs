@@ -44,10 +44,6 @@ export interface Context {
   redis?: RedisType;
 }
 
-export interface Handler<T> {
-  (data: T, context: Context): Promise<void>;
-}
-
 /**
  * Run a handler in this process using the WorkerConfig passed. A context will
  * be created to give the handler access to resources(logging, redis).

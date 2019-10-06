@@ -1,9 +1,12 @@
 import { publisher } from '@random-guys/eventbus';
 import { ObjectState, EventModel, PayloadModel } from './event.model';
+import kebabCase from 'lodash/kebabCase';
 
 export class HubProxy<T extends PayloadModel> {
   static queue = 'PROHUB_QUEUE';
-  constructor(private name: string) {}
+  constructor(private name: string) {
+    this.name = kebabCase(name);
+  }
 
   async fireCreate(reference: string, state: ObjectState, args?: any) {
     await publisher.queue(HubProxy.queue, {
