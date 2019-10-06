@@ -33,6 +33,7 @@ export class InconsistentState extends Error {
 
 export class EventRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<EventModel<T>>;
+  readonly name: string;
   private hub: HubProxy<T>;
   constructor(
     mongoose: MongooseNamespace,
@@ -45,6 +46,7 @@ export class EventRepository<T extends PayloadModel> {
       name,
       EventSchema(schema, exclude)
     );
+    this.name = this.internalRepo.name;
     this.hub = new HubProxy(name);
   }
 
