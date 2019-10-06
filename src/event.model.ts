@@ -18,5 +18,5 @@ export interface EventModel<T extends PayloadModel> extends Model {
   __patch?: Partial<T>;
 }
 
-export const asObject = <T extends PayloadModel>(x: EventModel<T>) =>
+export const asObject = <T extends PayloadModel>(x: EventModel<T>): T =>
   x.toObject();
