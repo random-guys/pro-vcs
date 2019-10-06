@@ -48,7 +48,7 @@ export function setupAppRoutes<T extends PayloadModel>(
     validate(isCreateEvent),
     async (req, res) => {
       try {
-        await merger.onApprove(req, req.params.reference);
+        await merger.onApprove(req, req.params.reference, req.body);
         jsend(req, res, null);
       } catch (err) {
         jsendError(req, res, err);
@@ -62,7 +62,7 @@ export function setupAppRoutes<T extends PayloadModel>(
     validate(isCreateEvent),
     async (req, res) => {
       try {
-        await merger.onReject(req, req.params.reference);
+        await merger.onReject(req, req.params.reference, req.body);
         jsend(req, res, null);
       } catch (err) {
         jsendError(req, res, err);
