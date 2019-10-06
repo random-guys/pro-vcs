@@ -8,6 +8,8 @@ import Logger from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import kebabCase from 'lodash/kebabCase';
 import { ICanMerge, MergerConfig } from './merge.contract';
+import { validate } from '@random-guys/siber';
+import { isCreateEvent } from './merge.validator';
 
 export function setupAppRoutes(
   config: MergerConfig,
@@ -42,6 +44,7 @@ export function setupAppRoutes(
   mergerApp.post(
     `/${parent}/:reference/approve`,
     authToken,
+    validate(isCreateEvent),
     async (req, res) => {
       try {
         await merger.onApprove(req, req.params.reference);
@@ -55,6 +58,7 @@ export function setupAppRoutes(
   mergerApp.post(
     `/${parent}/:reference/reject`,
     authToken,
+    validate(isCreateEvent),
     async (req, res) => {
       try {
         await merger.onReject(req, req.params.reference);
