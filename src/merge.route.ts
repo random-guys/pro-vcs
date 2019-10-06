@@ -3,19 +3,20 @@ import {
   logRequests,
   logResponse
 } from '@random-guys/express-bunyan';
+import { validate } from '@random-guys/siber';
 import { tokenOnly } from '@random-guys/sp-auth';
 import Logger from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import kebabCase from 'lodash/kebabCase';
+import { PayloadModel } from './event.model';
 import { ICanMerge, MergerConfig } from './merge.contract';
-import { validate } from '@random-guys/siber';
 import { isCreateEvent } from './merge.validator';
 
-export function setupAppRoutes(
+export function setupAppRoutes<T extends PayloadModel>(
   config: MergerConfig,
   logger: Logger,
   mergerApp: Express,
-  merger: ICanMerge
+  merger: ICanMerge<T>
 ) {
   const parent = rootRoute(config.name);
   const authToken = tokenOnly(config.security_secret, config.security_scheme);
