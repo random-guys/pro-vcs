@@ -58,7 +58,7 @@ export async function createWorker(merger: ICanMerge, config: MergerConfig) {
   let mongooseCon: MongooseNamespace;
 
   const logger = createLogger({
-    name: config.name,
+    name: rootRoute(config.name),
     serializers: {
       err: Logger.stdSerializers.err,
       res: Logger.stdSerializers.res,
