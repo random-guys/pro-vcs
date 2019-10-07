@@ -1,9 +1,8 @@
-import { MongoConfig } from '@random-guys/bucket';
 import Logger from 'bunyan';
 import { Request } from 'express';
-import { Redis } from 'ioredis';
-import { CreateEvent } from './hub.model';
 import { PayloadModel } from './event.model';
+import { CreateEvent } from './hub.model';
+import { WorkerConfig } from './worker.contract';
 
 export interface ICanMerge<T extends PayloadModel> {
   /**
@@ -64,7 +63,7 @@ export interface Check {
 /**
  * Configuration for setting up a merge worker
  */
-export interface MergerConfig extends MongoConfig {
+export interface MergerConfig extends WorkerConfig {
   /**
    * Name of the repo this worker is supposed to manage
    */
@@ -77,20 +76,4 @@ export interface MergerConfig extends MongoConfig {
    * Scheme used for authentication of the merge routes
    */
   security_scheme: string;
-  /**
-   * Whether it should use `bucket`'s `defaultMongoOpts` or `secureMongoOpts`
-   */
-  secure_db: boolean;
-  /**
-   * Merge worker's port
-   */
-  app_port: number;
-  /**
-   * Run this after setting up the worker
-   */
-  onStart?: (logger: Logger) => Promise<void>;
-  /**
-   * Run this just before quiting
-   */
-  onStop?: (logger: Logger) => Promise<void>;
 }
