@@ -84,8 +84,17 @@ export class EventRepository<T extends PayloadModel> {
     return this.markup(user, maybePending);
   }
 
-  async byQuery(user: string, query: object): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery(query);
+  /**
+   * Search for an object based on a query. Note that this doesn't take
+   * into account pending updates.
+   * @param user who's asking. Use everyone if it's not important
+   * @param query mongo query to use for search
+   * @param allowNew allow mongodb return newly created objects. `false` by default
+   */
+  async byQuery(user: string, query: object, allowNew = false): Promise<T> {
+    const maybePending = await this.internalRepo.byQuery(
+      this.allowNew(query, allowNew)
+    );
     return this.markup(user, maybePending);
   }
 
@@ -285,6 +294,16 @@ export class EventRepository<T extends PayloadModel> {
     }
 
     return data.toObject();
+  }
+
+  protected allowNew(query: object, allowNew: boolean) {
+    if (!allowNew) {
+      return {
+        ...query,
+        object_state: { $ne: ObjectState.created }
+      };
+    }
+    return query;
   }
 
   queryPathHelper(path: string, value: any) {
