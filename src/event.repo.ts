@@ -98,15 +98,36 @@ export class EventRepository<T extends PayloadModel> {
     return this.markup(user, maybePending);
   }
 
+  /**
+   * Search for multiple objects based on a query. Note that this doesn't take
+   * into account pending updates.
+   * @param user who's asking. Use everyone if it's not important
+   * @param query mongo query to use for search
+   * @param allowNew allow mongodb return newly created objects. `false` by default
+   */
   async all(user: string, query: Query = {}, allowNew = false): Promise<T[]> {
-    if (!allowNew) {
-      query.conditions = {
-        ...query.conditions,
-        object_state: { $ne: ObjectState.created }
-      };
-    }
+    query.conditions = this.allowNew(query.conditions, allowNew);
     const maybes = await this.internalRepo.all(query);
     return maybes.map(e => this.markup(user, e));
+  }
+
+  /**
+   * This is like `all`, but it returns paginated results
+   * @param user who's asking. Use everyone if it's not important
+   * @param query mongo query to use for search
+   * @param allowNew allow mongodb return newly created objects. `false` by default
+   */
+  async list(
+    user: string,
+    query: PaginationQuery,
+    allowNew = false
+  ): Promise<PaginationQueryResult<T>> {
+    query.conditions = this.allowNew(query.conditions, allowNew);
+    const paginatedResults = await this.internalRepo.list(query);
+    return {
+      ...paginatedResults,
+      result: paginatedResults.result.map(e => this.markup(user, e))
+    };
   }
 
   async update(
