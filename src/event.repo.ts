@@ -72,9 +72,7 @@ export class EventRepository<T extends PayloadModel> {
       __owner: owner,
       ...data
     });
-    this.hub.fireCreate(newObject.id, newObject.object_state, {
-      payload: newObject.toObject()
-    });
+    await this.hub.newObjectEvent(newObject);
     return newObject.toObject();
   }
 
@@ -173,7 +171,7 @@ export class EventRepository<T extends PayloadModel> {
       case ObjectState.created:
       case ObjectState.updated:
         const freshData = await this.inplaceUpdate(user, data, update);
-        await this.hub.firePatch(reference, freshData);
+        await this.hub.patch(reference, freshData);
         return this.markup(user, freshData);
       case ObjectState.deleted:
         throw new InvalidOperation(
@@ -181,10 +179,7 @@ export class EventRepository<T extends PayloadModel> {
         );
       case ObjectState.stable:
         const newUpdate = await this.newUpdate(user, data, update);
-        await this.hub.fireCreate(reference, data.object_state, {
-          payload: data.toObject(),
-          update
-        });
+        await this.hub.updateObjectEvent(newUpdate, update);
         return this.markup(user, newUpdate);
       default:
         throw new InconsistentState();
@@ -205,11 +200,11 @@ export class EventRepository<T extends PayloadModel> {
       case ObjectState.updated:
       case ObjectState.deleted:
         const freshData = await this.inplaceDelete(user, data);
-        await this.hub.fireClose(reference);
+        await this.hub.close(reference);
         return this.markup(user, freshData);
       case ObjectState.stable:
         const deletedData = await this.newDelete(user, data);
-        await this.hub.fireCreate(deletedData.id, deletedData.object_state);
+        await this.hub.deleteObjectEvent(deletedData);
         return this.markup(user, deletedData);
       default:
         throw new InconsistentState();

@@ -15,16 +15,16 @@ export interface CloseEvent {
 
 export interface NewObjectEvent<T extends PayloadModel> {
   event_scope: string;
-  event_type: 'create';
-  object_state: ObjectState.created;
+  event_type: 'create.new';
+  reference: string;
   owner: string;
   payload: T;
 }
 
 export interface UpdateObjectEvent<T extends PayloadModel> {
   event_scope: string;
-  event_type: 'create';
-  object_state: ObjectState.updated;
+  event_type: 'create.update';
+  reference: string;
   owner: string;
   payload: T;
   update: Partial<T>;
@@ -32,8 +32,8 @@ export interface UpdateObjectEvent<T extends PayloadModel> {
 
 export interface DeleteObjectEvent {
   event_scope: string;
-  event_type: 'create';
-  object_state: ObjectState.deleted;
+  event_type: 'create.delete';
+  reference: string;
   owner: string;
 }
 
