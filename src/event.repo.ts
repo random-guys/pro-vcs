@@ -2,7 +2,9 @@ import {
   BaseRepository,
   DuplicateModelError,
   MongooseNamespace,
-  Query
+  Query,
+  PaginationQuery,
+  PaginationQueryResult
 } from '@random-guys/bucket';
 import startCase from 'lodash/startCase';
 import { SchemaDefinition } from 'mongoose';
@@ -35,6 +37,15 @@ export class EventRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<EventModel<T>>;
   readonly name: string;
   private hub: HubProxy<T>;
+
+  /**
+   *
+   * @param mongoose This will ensure the same connection is shared
+   * @param name name of the repo. Note that this will become kebab case in
+   * Mongo DB
+   * @param schema Mongoose schema for the repo.
+   * @param exclude properties to exclude from the serialized payload e.g. password
+   */
   constructor(
     mongoose: MongooseNamespace,
     name: string,
@@ -50,6 +61,11 @@ export class EventRepository<T extends PayloadModel> {
     this.hub = new HubProxy(name);
   }
 
+  /**
+   * Create a frozen object and notify `pro-hub`
+   * @param owner ID of use that can make further changes to this object until approved
+   * @param data data to be saved
+   */
   async create(owner: string, data: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
       object_state: ObjectState.created,
@@ -62,6 +78,10 @@ export class EventRepository<T extends PayloadModel> {
     return newObject.toObject();
   }
 
+  /**
+   * Create a stable object directly, bypassing review requests.
+   * @param data data to be saved
+   */
   async createApproved(data: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
       object_state: ObjectState.stable,
@@ -79,6 +99,12 @@ export class EventRepository<T extends PayloadModel> {
     }
   }
 
+  /**
+   * Get an object based on it's owner. Check out `markup`
+   * for more details
+   * @param user who's asking
+   * @param reference ID of the object
+   */
   async get(user: string, reference: string): Promise<T> {
     const maybePending = await this.internalRepo.byID(reference);
     return this.markup(user, maybePending);
@@ -130,6 +156,13 @@ export class EventRepository<T extends PayloadModel> {
     };
   }
 
+  /**
+   * Update an object in place if unstable or create a pending update
+   * if stable.
+   * @param user who wants to make such update
+   * @param reference ID of object to be updated
+   * @param update updates to be made
+   */
   async update(
     user: string,
     reference: string,
@@ -158,6 +191,13 @@ export class EventRepository<T extends PayloadModel> {
     }
   }
 
+  /**
+   * Creates a pending delete for a stable object. Otherwise it just rolls back
+   * changes introduced. Fails if the `user` passed is not the object's temporary
+   * owner.
+   * @param user who wants to do this
+   * @param reference ID of object to be deleted
+   */
   async delete(user: string, reference: string): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
@@ -202,6 +242,10 @@ export class EventRepository<T extends PayloadModel> {
     }
   }
 
+  /**
+   * Rolls back any unapproved changes on an object
+   * @param reference ID of the object being normalized
+   */
   async reject(reference: string): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
