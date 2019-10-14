@@ -39,11 +39,12 @@ export class HubProxy<T extends PayloadModel> {
   }
 
   async deleteObjectEvent(objectToDelete: EventModel<T>) {
-    const event: DeleteObjectEvent = {
+    const event: DeleteObjectEvent<T> = {
       event_scope: this.name,
       event_type: 'create.delete',
       reference: objectToDelete.id,
-      owner: objectToDelete.__owner
+      owner: objectToDelete.__owner,
+      payload: objectToDelete.toObject()
     };
     return await publisher.queue(HubProxy.queue, event);
   }
