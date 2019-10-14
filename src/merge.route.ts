@@ -4,7 +4,7 @@ import {
   logResponse
 } from '@random-guys/express-bunyan';
 import { validate } from '@random-guys/siber';
-import { tokenOnly } from '@random-guys/sp-auth';
+import { session } from '@random-guys/sp-auth';
 import Logger from 'bunyan';
 import express, { Express, Request, Response } from 'express';
 import kebabCase from 'lodash/kebabCase';
@@ -19,7 +19,10 @@ export function setupAppRoutes<T extends PayloadModel>(
   merger: ICanMerge<T>
 ) {
   const parent = rootRoute(config.name);
-  const authToken = tokenOnly(config.security_secret, config.security_scheme);
+  const auth = session({
+    secret: config.security_secret,
+    scheme: config.security_scheme
+  });
 
   // basic middleware
   mergerApp.use(express.json());
@@ -33,18 +36,22 @@ export function setupAppRoutes<T extends PayloadModel>(
     res.status(200).json({ status: 'UP' });
   });
 
-  mergerApp.get(`/${parent}/:reference/check`, authToken, async (req, res) => {
-    try {
-      const checks = await merger.onCheck(req, req.params.reference);
-      jsend(req, res, checks);
-    } catch (err) {
-      jsendError(req, res, err);
+  mergerApp.get(
+    `/${parent}/:reference/check`,
+    auth.authCheck,
+    async (req, res) => {
+      try {
+        const checks = await merger.onCheck(req, req.params.reference);
+        jsend(req, res, checks);
+      } catch (err) {
+        jsendError(req, res, err);
+      }
     }
-  });
+  );
 
   mergerApp.post(
     `/${parent}/:reference/approve`,
-    authToken,
+    auth.authCheck,
     validate(isCreateEvent),
     async (req, res) => {
       try {
@@ -58,7 +65,7 @@ export function setupAppRoutes<T extends PayloadModel>(
 
   mergerApp.post(
     `/${parent}/:reference/reject`,
-    authToken,
+    auth.authCheck,
     validate(isCreateEvent),
     async (req, res) => {
       try {
