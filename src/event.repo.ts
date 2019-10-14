@@ -216,7 +216,12 @@ export class EventRepository<T extends PayloadModel> {
     }
   }
 
-  async merge(reference: string): Promise<T | void> {
+  /**
+   * Stabilises an object based on its state. Returns the newest state
+   * of the object
+   * @param reference ID of the object being stabilised
+   */
+  async merge(reference: string): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
       case ObjectState.created:
