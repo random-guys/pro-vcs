@@ -1,4 +1,4 @@
-import { ObjectState, PayloadModel } from './event.model';
+import { PayloadModel } from './event.model';
 
 export interface PatchEvent<T extends PayloadModel> {
   event_scope: string;
@@ -30,14 +30,15 @@ export interface UpdateObjectEvent<T extends PayloadModel> {
   update: Partial<T>;
 }
 
-export interface DeleteObjectEvent {
+export interface DeleteObjectEvent<T extends PayloadModel> {
   event_scope: string;
   event_type: 'create.delete';
   reference: string;
   owner: string;
+  payload: T;
 }
 
 export type CreateEvent<T extends PayloadModel> =
   | NewObjectEvent<T>
   | UpdateObjectEvent<T>
-  | DeleteObjectEvent;
+  | DeleteObjectEvent<T>;
