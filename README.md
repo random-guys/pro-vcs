@@ -10,9 +10,9 @@ Run `yarn add @random-guys/pro-vcs`
 
 ## TODO
 
-- [ ] [Less complex code](https://dave.cheney.net/2019/07/09/clear-is-better-than-clever)
-- [ ] Timestamps
-- [ ] Analysis for possible concurrency bugs
+- [x] [Less complex code](https://dave.cheney.net/2019/07/09/clear-is-better-than-clever)
+- [x] Timestamps
+- [ ] Introduction of transactions for better concurrency guarantees
 - [ ] Split test files(specifically `event.repo.ts`)
 
 ### Pending Tests(`EventRepo`)
@@ -24,17 +24,22 @@ Run `yarn add @random-guys/pro-vcs`
   - [ ] a new object
   - [ ] an updated object
   - [ ] a deleted object
-  - [ ] a stable object
+  - [x] a stable object
 - `byQuery`
   - [ ] ...all object states
+  - [ ] tests for allow new
   - [ ] when such document doesn't exist
 - `all`
   - [ ] ...all object states
+  - [ ] tests for allow new
+  - [ ] tests for queries on unapproved updates
+  - [x] owner based results
+- `list`
+  - [ ] ...same tests as all
 - `update`
   - [ ] a deleted object
   - [ ] an updated object
   - [ ] Protection against unauthorised edits
-  - [ ] detecting inconsistent state
 - `delete`
   - [ ] Protection against unauthorised edits
   - [ ] detecting inconsistent state
