@@ -289,6 +289,7 @@ export class EventRepository<T extends PayloadModel> {
         `Can't update an unapproved ${startCase(this.internalRepo.name)}`
       );
     }
+    const { object_state, ...cleanPartial } = partial;
 
     return this.internalRepo.atomicUpdate(
       {
@@ -298,9 +299,9 @@ export class EventRepository<T extends PayloadModel> {
       {
         $set:
           data.object_state === ObjectState.created
-            ? partial
+            ? cleanPartial
             : {
-                __patch: mongoSet(data.__patch, partial)
+                __patch: mongoSet(data.__patch, cleanPartial)
               }
       }
     );
@@ -322,6 +323,7 @@ export class EventRepository<T extends PayloadModel> {
   }
 
   protected newUpdate(user: string, data: EventModel<T>, update: Partial<T>) {
+    const { object_state, ...cleanUpdate } = update;
     // mark object as frozen
     return this.internalRepo.atomicUpdate(
       {
@@ -332,7 +334,7 @@ export class EventRepository<T extends PayloadModel> {
         $set: {
           object_state: ObjectState.updated,
           __owner: user,
-          __patch: update
+          __patch: cleanUpdate
         }
       }
     );
