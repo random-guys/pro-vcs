@@ -1,37 +1,40 @@
 import { ObjectState, PayloadModel } from './event.model';
 
-export interface PatchEvent {
-  object_type: string;
+export interface PatchEvent<T extends PayloadModel> {
+  event_scope: string;
   event_type: 'patch';
   reference: string;
-  payload: PayloadModel;
+  payload: T;
 }
 
 export interface CloseEvent {
-  object_type: string;
+  event_scope: string;
   event_type: 'close';
   reference: string;
 }
 
 export interface NewObjectEvent<T extends PayloadModel> {
-  object_type: string;
+  event_scope: string;
   event_type: 'create';
   object_state: ObjectState.created;
+  owner: string;
   payload: T;
 }
 
 export interface UpdateObjectEvent<T extends PayloadModel> {
-  object_type: string;
+  event_scope: string;
   event_type: 'create';
   object_state: ObjectState.updated;
+  owner: string;
   payload: T;
   update: Partial<T>;
 }
 
 export interface DeleteObjectEvent {
-  object_type: string;
+  event_scope: string;
   event_type: 'create';
   object_state: ObjectState.deleted;
+  owner: string;
 }
 
 export type CreateEvent<T extends PayloadModel> =
