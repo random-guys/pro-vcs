@@ -396,12 +396,14 @@
     npm-cli-login "^0.1.1"
     response-time "^2.3.2"
 
-"@random-guys/sp-auth@^3.1.2":
-  version "3.1.2"
-  resolved "https://registry.yarnpkg.com/@random-guys/sp-auth/-/sp-auth-3.1.2.tgz#59b9fe4198e6fbfbf2c665dbd5d4278c01ec887b"
-  integrity sha512-QqYdlwvxpxmqauUpmNXxbaBZfvpHmSdJ1L87voi8N46c54idmWfpGICFQyabIaOf4mjuL8g9cdzBIMoe/VjF1g==
+"@random-guys/sp-auth@^3.3.0":
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/@random-guys/sp-auth/-/sp-auth-3.3.0.tgz#4b0f85684140b193443fa6dbf3e99eda9f5fef6a"
+  integrity sha512-DbnzdJ1Kf4Uso3WEKxJZCIWaQPfUJc3mZjWZ0LVrsUf/iy1qDDOfWnnRWVDy+eAEsEfnfkywEuccvMe+ju0VkA==
   dependencies:
     "@random-guys/memory" "^0.2.1"
+    "@stablelib/base64" "^0.7.2"
+    "@stablelib/utf8" "^0.10.1"
     "@types/ioredis" "^4.0.17"
     "@types/lodash.at" "^4.6.6"
     "@types/lodash.set" "^4.3.6"
@@ -416,6 +418,7 @@
     ms "^2.1.2"
     npm-cli-login "^0.1.1"
     redis "^2.8.0"
+    tweetnacl "^1.0.1"
 
 "@snyk/composer-lockfile-parser@1.0.3":
   version "1.0.3"
@@ -440,6 +443,16 @@
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@snyk/gemfile/-/gemfile-1.2.0.tgz#919857944973cce74c650e5428aaf11bcd5c0457"
   integrity sha512-nI7ELxukf7pT4/VraL4iabtNNMz8mUo7EXlqCFld8O5z6mIMLX9llps24iPpaIZOwArkY3FWA+4t+ixyvtTSIA==
+
+"@stablelib/base64@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@stablelib/base64/-/base64-0.7.2.tgz#fbbb8d60c26f514cdcb5b791cf911bfb1db4b4b4"
+  integrity sha1-+7uNYMJvUUzctbeRz5Eb+x20tLQ=
+
+"@stablelib/utf8@^0.10.1":
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/@stablelib/utf8/-/utf8-0.10.1.tgz#eecf54884da7b2bee235e3c70efb8cd5c07ba5bd"
+  integrity sha512-+uM1YZ4MhBC82vt99prF7DXNGqhYmJ9cQ3p5qNowMNkkzn9OWEkqBvguBW3ChAt7JvqZ3SD5HJOfc6YgnfMTHw==
 
 "@types/agent-base@^4.2.0":
   version "4.2.0"
@@ -5875,6 +5888,11 @@ tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
   integrity sha1-WuaBd/GS1EViadEIr6k/+HQ/T2Q=
+
+tweetnacl@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-1.0.1.tgz#2594d42da73cd036bd0d2a54683dd35a6b55ca17"
+  integrity sha512-kcoMoKTPYnoeS50tzoqjPY3Uv9axeuuFAZY9M/9zFnhoVvRfxz9K29IMPD7jGmt2c8SW7i3gT9WqDl2+nV7p4A==
 
 type-check@~0.3.2:
   version "0.3.2"
