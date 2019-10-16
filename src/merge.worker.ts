@@ -3,8 +3,12 @@ import {
   MongooseNamespace,
   secureMongoOpts
 } from '@random-guys/bucket';
-import { createRequestSerializer } from '@random-guys/express-bunyan';
-import Logger, { createLogger } from 'bunyan';
+import {
+  createRequestSerializer,
+  errSerializer,
+  resSerializer
+} from '@random-guys/siber';
+import { createLogger } from 'bunyan';
 import express from 'express';
 import mongoose from 'mongoose';
 import { PayloadModel } from './event.model';
@@ -26,8 +30,8 @@ export async function createWorker<T extends PayloadModel>(
   const logger = createLogger({
     name: rootRoute(config.name),
     serializers: {
-      err: Logger.stdSerializers.err,
-      res: Logger.stdSerializers.res,
+      err: errSerializer,
+      res: resSerializer,
       req: createRequestSerializer('password')
     }
   });
