@@ -1,9 +1,4 @@
-import {
-  logError,
-  logRequests,
-  logResponse
-} from '@random-guys/express-bunyan';
-import { validate } from '@random-guys/siber';
+import { validate, build } from '@random-guys/siber';
 import { session } from '@random-guys/sp-auth';
 import Logger from 'bunyan';
 import express, { Express, Request, Response } from 'express';
@@ -24,12 +19,10 @@ export function setupAppRoutes<T extends PayloadModel>(
     scheme: config.security_scheme
   });
 
-  // basic middleware
-  mergerApp.use(express.json());
-  mergerApp.use(express.urlencoded({ extended: false }));
-
-  // log all requests
-  mergerApp.use(logRequests(logger));
+  build(mergerApp, logger, {
+    cors: false,
+    tracking: true
+  });
 
   // status checks
   mergerApp.get('/', (req: Request, res: Response) => {

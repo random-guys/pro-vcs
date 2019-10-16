@@ -344,27 +344,10 @@
   dependencies:
     amqplib "^0.5.3"
 
-"@random-guys/express-bunyan@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@random-guys/express-bunyan/-/express-bunyan-0.2.0.tgz#d5dd263f267b23cf1bdb7aacebeabc495acd9327"
-  integrity sha512-dcXT6Aj7stn2Y9Do2e1YTRy9N+3dYR8Nc2Q996sg0YkEmsNW/9tjTEdHLl4qhLA4CTPpf5NPzxPhbZKLARBbOQ==
-  dependencies:
-    "@types/uuid" "^3.4.4"
-    bunyan "^1.8.12"
-    express "^4.17.1"
-
-"@random-guys/express-jsend@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@random-guys/express-jsend/-/express-jsend-0.1.0.tgz#7510953dd31d555baf2aecdaa28d5c2bf4638bfa"
-  integrity sha512-oTMG5rct2e8uUkzRps0NTJHOmBYO+0+xklajHB0uRKJmdoqBOzzQ+4LHSHxnfo19VlLj+HcdNu4+PsG8dLfWmw==
-  dependencies:
-    express "^4.17.1"
-    http-status-codes "^1.3.2"
-
-"@random-guys/iris@^1.0.4":
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/@random-guys/iris/-/iris-1.0.4.tgz#d8ab8435d1dcd5f630f0891235057b242c298c6e"
-  integrity sha512-uXicHrFYK/eTob8L6+bv25I+asiqDjljWFXr/5DiHPcgcBIEuW98eTRoSskVkEWTUzv8vH7bXgaZ3CT21yXHig==
+"@random-guys/iris@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@random-guys/iris/-/iris-1.1.0.tgz#760631fe4cb3790344750828f1424516214467dd"
+  integrity sha512-UvSuhesvgnG+fyb2Ahq7CPc8Ghyng9gF5/KfNVb6xQ0hsJaTEH+n9bl8tsmBc9IH3QF9TZyFPrEXTnat4oFEMA==
   dependencies:
     axios "^0.19.0"
     axios-retry "^3.1.2"
@@ -378,16 +361,14 @@
     bunyan "^1.8.12"
     redis "^2.8.0"
 
-"@random-guys/siber@^0.4.1":
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/@random-guys/siber/-/siber-0.4.1.tgz#20e103bef0243517d95cfd613e8c83e0ddd0a63d"
-  integrity sha512-CN2uxyCEoW+xQyvy7plYKEjz772vvnWi7LdUZNqgeri7aU2JkTh863ehci3B909fMBPLyJLuxJl/J8RHlZYoGw==
+"@random-guys/siber@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@random-guys/siber/-/siber-0.5.0.tgz#e407d88111b33ba2df5b06544b87f636674dd4c1"
+  integrity sha512-rI8/mTGb+dEps38OawjbJwvllfYNE3H8yfYVY6qfJEMaab/+P7cBwcy9PjgKxnWxW2O5n0KzIfDkCI0n8YL/Rg==
   dependencies:
     "@hapi/joi" "^15.1.1"
     "@random-guys/bucket" "^0.4.0"
-    "@random-guys/express-bunyan" "^0.2.0"
-    "@random-guys/express-jsend" "^0.1.0"
-    "@random-guys/iris" "^1.0.4"
+    "@random-guys/iris" "^1.1.0"
     cors "^2.8.5"
     express "^4.17.1"
     http-status-codes "^1.3.2"
@@ -395,6 +376,7 @@
     lodash "^4.17.11"
     npm-cli-login "^0.1.1"
     response-time "^2.3.2"
+    uuid "^3.3.3"
 
 "@random-guys/sp-auth@^3.3.0":
   version "3.3.0"
@@ -715,7 +697,7 @@
   dependencies:
     "@types/superagent" "*"
 
-"@types/uuid@^3.4.4", "@types/uuid@^3.4.5":
+"@types/uuid@^3.4.5":
   version "3.4.5"
   resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-3.4.5.tgz#d4dc10785b497a1474eae0ba7f0cb09c0ddfd6eb"
   integrity sha512-MNL15wC3EKyw1VLF+RoVO4hJJdk9t/Hlv3rt1OL65Qvuadm4BYo6g9ZJQqoq7X8NBFSsQXgAujWciovh2lpVjA==
@@ -6037,6 +6019,11 @@ uuid@^3.0.1, uuid@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.3.2.tgz#1b4af4955eb3077c501c23872fc6513811587131"
   integrity sha512-yXJmeNaw3DnnKAOKJE51sL/ZaYfWJRl1pK9dr19YFCu0ObS231AB1/LbqTKRAQ5kw8A90rA6fr4riOUpTZvQZA==
+
+uuid@^3.3.3:
+  version "3.3.3"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.3.3.tgz#4568f0216e78760ee1dbf3a4d2cf53e224112866"
+  integrity sha512-pW0No1RGHgzlpHJO1nsVrHKpOEIxkGg1xB+v0ZmdNH5OAeAwzAVrCnI2/6Mtx+Uys6iaylxa+D3g4j63IKKjSQ==
 
 validate-npm-package-license@^3.0.1:
   version "3.0.4"
