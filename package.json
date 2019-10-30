@@ -1,6 +1,6 @@
 {
   "name": "@random-guys/pro-vcs",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "Wrapper around axios for interservice communication",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,10 +40,10 @@
   },
   "dependencies": {
     "@hapi/joi": "15.1.1",
-    "@random-guys/bucket": "^0.5.1",
+    "@random-guys/bucket": "^0.7.0",
     "@random-guys/eventbus": "^2.0.1",
-    "@random-guys/siber": "^0.5.4",
-    "@random-guys/sp-auth": "^3.3.0",
+    "@random-guys/siber": "^0.6.2",
+    "@random-guys/sp-auth": "^3.3.2",
     "amqplib": "^0.5.3",
     "bunyan": "^1.8.12",
     "deep-diff": "^1.0.2",
