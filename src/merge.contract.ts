@@ -11,11 +11,7 @@ export interface ICanMerge<T extends PayloadModel> {
    * @param reference reference for this event
    * @param event event itself
    */
-  onApprove(
-    req: Request,
-    reference: string,
-    event: CreateEvent<T>
-  ): Promise<void>;
+  onApprove(req: Request, reference: string, event: CreateEvent<T>): Promise<T>;
 
   /**
    * This is called when a single reject is sent, as long as `onApprove`
@@ -24,11 +20,7 @@ export interface ICanMerge<T extends PayloadModel> {
    * @param reference reference for this event
    * @param event event itself
    */
-  onReject(
-    req: Request,
-    reference: string,
-    event: CreateEvent<T>
-  ): Promise<void>;
+  onReject(req: Request, reference: string, event: CreateEvent<T>): Promise<T>;
 
   /**
    * This is called to ensure the viability of approval i.e. if the
