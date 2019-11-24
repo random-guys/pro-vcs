@@ -1,21 +1,21 @@
-import { PayloadModel } from './event.model';
+import { PayloadModel } from "./event.model";
 
 export interface PatchEvent<T extends PayloadModel> {
   event_scope: string;
-  event_type: 'patch';
+  event_type: "patch";
   reference: string;
   payload: T;
 }
 
 export interface CloseEvent {
   event_scope: string;
-  event_type: 'close';
+  event_type: "close";
   reference: string;
 }
 
 export interface NewObjectEvent<T extends PayloadModel> {
   event_scope: string;
-  event_type: 'create.new';
+  event_type: "create.new";
   reference: string;
   owner: string;
   payload: T;
@@ -23,7 +23,7 @@ export interface NewObjectEvent<T extends PayloadModel> {
 
 export interface UpdateObjectEvent<T extends PayloadModel> {
   event_scope: string;
-  event_type: 'create.update';
+  event_type: "create.update";
   reference: string;
   owner: string;
   payload: T;
@@ -32,7 +32,7 @@ export interface UpdateObjectEvent<T extends PayloadModel> {
 
 export interface DeleteObjectEvent<T extends PayloadModel> {
   event_scope: string;
-  event_type: 'create.delete';
+  event_type: "create.delete";
   reference: string;
   owner: string;
   payload: T;

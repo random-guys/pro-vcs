@@ -2,18 +2,18 @@ import {
   defaultMongoOpts,
   MongooseNamespace,
   secureMongoOpts
-} from '@random-guys/bucket';
+} from "@random-guys/bucket";
 import {
   createRequestSerializer,
   errSerializer,
   resSerializer
-} from '@random-guys/siber';
-import { createLogger } from 'bunyan';
-import express from 'express';
-import mongoose from 'mongoose';
-import { PayloadModel } from './event.model';
-import { ICanMerge, MergerConfig } from './merge.contract';
-import { rootRoute, setupAppRoutes } from './merge.route';
+} from "@random-guys/siber";
+import { createLogger } from "bunyan";
+import express from "express";
+import mongoose from "mongoose";
+import { PayloadModel } from "./event.model";
+import { ICanMerge, MergerConfig } from "./merge.contract";
+import { rootRoute, setupAppRoutes } from "./merge.route";
 
 /**
  * Run a handler in this process using the WorkerConfig passed. A context will
@@ -32,7 +32,7 @@ export async function createWorker<T extends PayloadModel>(
     serializers: {
       err: errSerializer,
       res: resSerializer,
-      req: createRequestSerializer('password')
+      req: createRequestSerializer("password")
     }
   });
 
@@ -47,7 +47,7 @@ export async function createWorker<T extends PayloadModel>(
     config.mongodb_url,
     config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
   );
-  logger.info('📦  MongoDB Connected!');
+  logger.info("📦  MongoDB Connected!");
 
   // call user's setup code
   if (config.onStart) {
@@ -77,9 +77,7 @@ export async function createWorker<T extends PayloadModel>(
     }
   };
 
-  process.once('SIGINT', async () => {
-    await stop();
-  });
+  process.once("SIGINT", () => stop());
 
   return stop;
 }

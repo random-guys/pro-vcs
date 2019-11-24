@@ -1,10 +1,10 @@
-import { MongooseNamespace } from '@random-guys/bucket';
-import { subscriber } from '@random-guys/eventbus';
-import Logger, { createLogger } from 'bunyan';
-import express, { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import { SubscriptionConfig, Handler } from './subscription.contract';
-import { ConsumeMessage } from 'amqplib';
+import { MongooseNamespace } from "@random-guys/bucket";
+import { subscriber } from "@random-guys/eventbus";
+import Logger, { createLogger } from "bunyan";
+import express, { Request, Response } from "express";
+import mongoose from "mongoose";
+import { SubscriptionConfig, Handler } from "./subscription.contract";
+import { ConsumeMessage } from "amqplib";
 
 export async function withinWorker(
   config: SubscriptionConfig,
@@ -22,15 +22,15 @@ export async function withinWorker(
   await subscriber.init(config.amqp_url);
 
   const subscriberConnection = subscriber.getConnection();
-  subscriberConnection.on('error', (err: any) => {
+  subscriberConnection.on("error", (err: any) => {
     logger.error(err);
     process.exit(1);
   });
 
   // Start simple server for  health check
   const healthApp = express();
-  healthApp.get('/', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'UP' });
+  healthApp.get("/", (req: Request, res: Response) => {
+    res.status(200).json({ status: "UP" });
   });
   const httpServer = healthApp.listen(config.app_port);
   logger.info(`🌋 Health check running on port ${config.app_port}`);
@@ -40,7 +40,7 @@ export async function withinWorker(
     useNewUrlParser: true,
     useCreateIndex: true
   });
-  logger.info('📦  MongoDB Connected!');
+  logger.info("📦  MongoDB Connected!");
 
   // call user's setup code
   if (config.onStart) {
@@ -73,7 +73,7 @@ export async function withinWorker(
     }
   };
 
-  process.once('SIGINT', async () => {
+  process.once("SIGINT", async () => {
     await stop();
   });
 
@@ -83,7 +83,7 @@ export async function withinWorker(
 export function createHandler<T>(logger: Logger, handler: Handler<T>) {
   return async (message: ConsumeMessage) => {
     if (message === null) {
-      logger.info('Consumer cancelled by server. Exiting process');
+      logger.info("Consumer cancelled by server. Exiting process");
       process.exit(1);
     }
 

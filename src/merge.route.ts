@@ -1,11 +1,11 @@
-import { build, Controller, validate } from '@random-guys/siber';
-import { session } from '@random-guys/sp-auth';
-import Logger from 'bunyan';
-import { Express, Request, Response } from 'express';
-import kebabCase from 'lodash/kebabCase';
-import { PayloadModel } from './event.model';
-import { Check, ICanMerge, MergerConfig } from './merge.contract';
-import { isCreateEvent } from './merge.validator';
+import { build, Controller, validate } from "@random-guys/siber";
+import { session } from "@random-guys/sp-auth";
+import Logger from "bunyan";
+import { Express, Request, Response } from "express";
+import kebabCase from "lodash/kebabCase";
+import { PayloadModel } from "./event.model";
+import { Check, ICanMerge, MergerConfig } from "./merge.contract";
+import { isCreateEvent } from "./merge.validator";
 
 export function setupAppRoutes<T extends PayloadModel>(
   config: MergerConfig,
@@ -28,8 +28,8 @@ export function setupAppRoutes<T extends PayloadModel>(
   });
 
   // status checks
-  mergerApp.get('/', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'UP' });
+  mergerApp.get("/", (req: Request, res: Response) => {
+    res.status(200).json({ status: "UP" });
   });
 
   /**

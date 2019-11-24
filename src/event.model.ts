@@ -1,11 +1,11 @@
-import { Model } from '@random-guys/bucket';
+import { Model } from "@random-guys/bucket";
 
 export enum ObjectState {
-  created = 'created',
-  updated = 'updated',
-  deleted = 'deleted',
-  frozen = 'frozen',
-  stable = 'stable'
+  created = "created",
+  updated = "updated",
+  deleted = "deleted",
+  frozen = "frozen",
+  stable = "stable"
 }
 
 export interface PayloadModel extends Model {

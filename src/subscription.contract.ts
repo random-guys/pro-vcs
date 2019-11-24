@@ -1,5 +1,5 @@
-import Logger from 'bunyan';
-import { WorkerConfig } from './worker.contract';
+import Logger from "bunyan";
+import { WorkerConfig } from "./worker.contract";
 
 export interface SubscriptionConfig extends WorkerConfig {
   /**
