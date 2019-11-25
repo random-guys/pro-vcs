@@ -6,9 +6,9 @@ import Logger from "bunyan";
  */
 export interface WorkerConfig extends MongoConfig {
   /**
-   * Name of the worker
+   * Name of the parent service
    */
-  name: string;
+  service_name: string;
   /**
    * Whether it should use `bucket`'s `defaultMongoOpts` or `secureMongoOpts`
    */

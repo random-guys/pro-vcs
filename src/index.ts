@@ -4,7 +4,6 @@ export * from "./event.repo";
 export * from "./event.schema";
 export * from "./hub.model";
 export * from "./merge.contract";
-export { rootRoute } from "./merge.route";
 export * from "./merge.worker";
 export * from "./object.util";
 export * from "./schema.util";
