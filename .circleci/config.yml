@@ -78,13 +78,17 @@ workflows:
       - build:
           filters:
             branches:
-              ignore: master
+              ignore:
+                - master
+                - release
       - test:
           requires:
             - build
           filters:
             branches:
-              ignore: master
+              ignore:
+                - master
+                - release
       - deploy:
           context: library
           filters:
