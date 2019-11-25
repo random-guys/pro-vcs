@@ -1,7 +1,7 @@
 {
   "name": "@random-guys/pro-vcs",
   "version": "0.11.3",
-  "description": "Wrapper around axios for interservice communication",
+  "description": "Repo for implementing review requests",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
