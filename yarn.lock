@@ -351,10 +351,10 @@
     bunyan "^1.8.12"
     redis "^2.8.0"
 
-"@random-guys/siber@^0.6.2":
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/@random-guys/siber/-/siber-0.6.2.tgz#3f18fcccbd38ccec0667080f34526ada1b5d83dc"
-  integrity sha512-zXqLufGOhwxc1p+J4NudG8wn5lTh8hzIVsMidsdgV6qup86IuqZfzLcWE+jQUg2zJt0HFHUibFmHQUnaLXzSaA==
+"@random-guys/siber@^0.9.0":
+  version "0.9.0"
+  resolved "https://registry.yarnpkg.com/@random-guys/siber/-/siber-0.9.0.tgz#3132507077d15f727cbe34e1786f18ead8e86340"
+  integrity sha512-sKfanmL/hDz0bHb4rbwEDfYQUstln/9Azjp/4DXV7Z+wDNse4hXndXs2NZxqczHiqDF4ufP/k/Swx61suOYOgA==
   dependencies:
     "@hapi/joi" "^15.1.1"
     "@random-guys/bucket" "^0.7.0"
