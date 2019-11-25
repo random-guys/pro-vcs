@@ -49,10 +49,6 @@ jobs:
           command: yarn test
   deploy:
     working_directory: ~/app
-    environment:
-      NPM_USER: $CIRCLE_NPM_USER
-      NPM_PASS: $CIRCLE_NPM_PASS
-      NPM_EMAIL: $CIRCLE_NPM_EMAIL
     docker:
       - image: circleci/node:10
     steps:
