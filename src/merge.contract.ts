@@ -50,21 +50,3 @@ export interface Check {
    */
   message?: string;
 }
-
-/**
- * Configuration for setting up a merge worker
- */
-export interface MergerConfig extends WorkerConfig {
-  /**
-   * Name of the repo this worker is supposed to manage
-   */
-  name: string;
-  /**
-   * Secret used for authentication of the merge routes
-   */
-  security_secret: string;
-  /**
-   * Scheme used for authentication of the merge routes
-   */
-  security_scheme: string;
-}
