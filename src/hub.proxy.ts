@@ -1,16 +1,16 @@
-import { publisher } from '@random-guys/eventbus';
-import kebabCase from 'lodash/kebabCase';
-import { EventModel, ObjectState, PayloadModel } from './event.model';
+import { publisher } from "@random-guys/eventbus";
+import kebabCase from "lodash/kebabCase";
+import { EventModel, ObjectState, PayloadModel } from "./event.model";
 import {
   DeleteObjectEvent,
   NewObjectEvent,
   UpdateObjectEvent,
   PatchEvent,
   CloseEvent
-} from './hub.model';
+} from "./hub.model";
 
 export class HubProxy<T extends PayloadModel> {
-  static queue = 'PROHUB_QUEUE';
+  static queue = "PROHUB_QUEUE";
   constructor(private name: string) {
     this.name = kebabCase(name);
   }
@@ -18,7 +18,7 @@ export class HubProxy<T extends PayloadModel> {
   async newObjectEvent(newObject: EventModel<T>) {
     const event: NewObjectEvent<T> = {
       event_scope: this.name,
-      event_type: 'create.new',
+      event_type: "create.new",
       reference: newObject.id,
       owner: newObject.__owner,
       payload: newObject.toObject()
@@ -29,7 +29,7 @@ export class HubProxy<T extends PayloadModel> {
   async updateObjectEvent(freshObject: EventModel<T>, update: Partial<T>) {
     const event: UpdateObjectEvent<T> = {
       event_scope: this.name,
-      event_type: 'create.update',
+      event_type: "create.update",
       reference: freshObject.id,
       owner: freshObject.__owner,
       payload: freshObject.toObject(),
@@ -41,7 +41,7 @@ export class HubProxy<T extends PayloadModel> {
   async deleteObjectEvent(objectToDelete: EventModel<T>) {
     const event: DeleteObjectEvent<T> = {
       event_scope: this.name,
-      event_type: 'create.delete',
+      event_type: "create.delete",
       reference: objectToDelete.id,
       owner: objectToDelete.__owner,
       payload: objectToDelete.toObject()
@@ -52,7 +52,7 @@ export class HubProxy<T extends PayloadModel> {
   async patch(reference: string, payload: EventModel<T>) {
     const event: PatchEvent<T> = {
       event_scope: this.name,
-      event_type: 'patch',
+      event_type: "patch",
       reference: reference,
       payload: payload.toObject()
     };
@@ -62,7 +62,7 @@ export class HubProxy<T extends PayloadModel> {
   async close(reference: string) {
     const event: CloseEvent = {
       event_scope: this.name,
-      event_type: 'close',
+      event_type: "close",
       reference
     };
     return await publisher.queue(HubProxy.queue, event);

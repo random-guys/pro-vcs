@@ -1,11 +1,11 @@
-import { build, Controller, validate } from '@random-guys/siber';
-import { session } from '@random-guys/sp-auth';
-import Logger from 'bunyan';
-import { Express, Request, Response } from 'express';
-import kebabCase from 'lodash/kebabCase';
-import { PayloadModel } from './event.model';
-import { Check, ICanMerge, MergerConfig } from './merge.contract';
-import { isCreateEvent } from './merge.validator';
+import { build, Controller, validate } from "@random-guys/siber";
+import { session } from "@random-guys/sp-auth";
+import Logger from "bunyan";
+import { Express, Request, Response } from "express";
+import kebabCase from "lodash/kebabCase";
+import { PayloadModel } from "./event.model";
+import { Check, ICanMerge, MergerConfig } from "./merge.contract";
+import { isCreateEvent } from "./merge.validator";
 
 export function setupAppRoutes<T extends PayloadModel>(
   config: MergerConfig,
@@ -20,7 +20,7 @@ export function setupAppRoutes<T extends PayloadModel>(
   });
 
   // we'll use this to handle errors properly
-  const dummyController = new Controller<null | Check[]>(logger);
+  const dummyController = new Controller<T | Check[]>(logger);
 
   build(mergerApp, logger, {
     cors: false, // we don't need CORS
@@ -28,8 +28,8 @@ export function setupAppRoutes<T extends PayloadModel>(
   });
 
   // status checks
-  mergerApp.get('/', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'UP' });
+  mergerApp.get("/", (req: Request, res: Response) => {
+    res.status(200).json({ status: "UP" });
   });
 
   /**
@@ -40,8 +40,11 @@ export function setupAppRoutes<T extends PayloadModel>(
     auth.authCheck,
     async (req, res) => {
       try {
-        const checks = await merger.onCheck(req, req.params.reference);
-        dummyController.handleSuccess(req, res, checks);
+        dummyController.handleSuccess(
+          req,
+          res,
+          await merger.onCheck(req, req.params.reference)
+        );
       } catch (err) {
         dummyController.handleError(req, res, err);
       }
@@ -57,8 +60,11 @@ export function setupAppRoutes<T extends PayloadModel>(
     validate(isCreateEvent),
     async (req, res) => {
       try {
-        await merger.onApprove(req, req.params.reference, req.body);
-        dummyController.handleSuccess(req, res, null);
+        dummyController.handleSuccess(
+          req,
+          res,
+          await merger.onApprove(req, req.params.reference, req.body)
+        );
       } catch (err) {
         dummyController.handleError(req, res, err);
       }
@@ -74,8 +80,11 @@ export function setupAppRoutes<T extends PayloadModel>(
     validate(isCreateEvent),
     async (req, res) => {
       try {
-        await merger.onReject(req, req.params.reference, req.body);
-        dummyController.handleSuccess(req, res, null);
+        dummyController.handleSuccess(
+          req,
+          res,
+          await merger.onReject(req, req.params.reference, req.body)
+        );
       } catch (err) {
         dummyController.handleError(req, res, err);
       }

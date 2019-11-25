@@ -5,13 +5,13 @@ import {
   Query,
   PaginationQuery,
   PaginationQueryResult
-} from '@random-guys/bucket';
-import startCase from 'lodash/startCase';
-import { SchemaDefinition } from 'mongoose';
-import { asObject, EventModel, ObjectState, PayloadModel } from './event.model';
-import { EventSchema } from './event.schema';
-import { HubProxy } from './hub.proxy';
-import { mongoSet } from './object.util';
+} from "@random-guys/bucket";
+import startCase from "lodash/startCase";
+import { SchemaDefinition } from "mongoose";
+import { asObject, EventModel, ObjectState, PayloadModel } from "./event.model";
+import { EventSchema } from "./event.schema";
+import { HubProxy } from "./hub.proxy";
+import { mongoSet } from "./object.util";
 
 /**
  * This error is usually thrown when a user tries
@@ -29,7 +29,7 @@ export class InvalidOperation extends Error {
  */
 export class InconsistentState extends Error {
   constructor() {
-    super('The database is in an inconsistent state. Please resolve');
+    super("The database is in an inconsistent state. Please resolve");
   }
 }
 
@@ -236,7 +236,7 @@ export class EventRepository<T extends PayloadModel> {
           })
           .then(asObject);
       case ObjectState.stable:
-        throw new InvalidOperation('Cannot merge a stable object');
+        throw new InvalidOperation("Cannot merge a stable object");
       default:
         throw new InconsistentState();
     }
@@ -255,7 +255,7 @@ export class EventRepository<T extends PayloadModel> {
       case ObjectState.deleted:
         return this.stabilise(data).then(asObject);
       case ObjectState.stable:
-        throw new InvalidOperation('Cannot reject a stable object');
+        throw new InvalidOperation("Cannot reject a stable object");
       default:
         throw new InconsistentState();
     }

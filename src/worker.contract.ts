@@ -1,5 +1,5 @@
-import { MongoConfig } from '@random-guys/bucket';
-import Logger from 'bunyan';
+import { MongoConfig } from "@random-guys/bucket";
+import Logger from "bunyan";
 
 /**
  * Configuration for setting up a merge worker

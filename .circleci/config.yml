@@ -72,13 +72,13 @@ workflows:
     jobs:
       - build
       - test:
-          context: global
+          context: library
           requires:
             - build
       - deploy:
-          context: global
+          context: library
           requires:
             - test
           filters:
             branches:
-              only: master
+              only: release

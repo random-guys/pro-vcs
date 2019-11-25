@@ -3,10 +3,10 @@ import {
   trimmedLowercaseString,
   trimmedString,
   uuid
-} from '@random-guys/bucket';
-import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from 'mongoose';
-import { EventModel, ObjectState, PayloadModel } from './event.model';
-import { mapperConfig } from './schema.util';
+} from "@random-guys/bucket";
+import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from "mongoose";
+import { EventModel, ObjectState, PayloadModel } from "./event.model";
+import { mapperConfig } from "./schema.util";
 
 export const MetadateSchema: SchemaDefinition = {
   __owner: { ...trimmedString, index: true },
@@ -24,7 +24,7 @@ export const EventSchema = <T extends PayloadModel>(
   options?: SchemaOptions
 ) => {
   // make sure to remove any trace of metadata
-  exclude.push('__owner', '__patch');
+  exclude.push("__owner", "__patch");
   const mapper = mapperConfig<EventModel<T>>(exclude);
 
   const schema = new Schema(

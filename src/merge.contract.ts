@@ -1,8 +1,7 @@
-import Logger from 'bunyan';
-import { Request } from 'express';
-import { PayloadModel } from './event.model';
-import { CreateEvent } from './hub.model';
-import { WorkerConfig } from './worker.contract';
+import { Request } from "express";
+import { PayloadModel } from "./event.model";
+import { CreateEvent } from "./hub.model";
+import { WorkerConfig } from "./worker.contract";
 
 export interface ICanMerge<T extends PayloadModel> {
   /**
@@ -12,11 +11,7 @@ export interface ICanMerge<T extends PayloadModel> {
    * @param reference reference for this event
    * @param event event itself
    */
-  onApprove(
-    req: Request,
-    reference: string,
-    event: CreateEvent<T>
-  ): Promise<void>;
+  onApprove(req: Request, reference: string, event: CreateEvent<T>): Promise<T>;
 
   /**
    * This is called when a single reject is sent, as long as `onApprove`
@@ -25,11 +20,7 @@ export interface ICanMerge<T extends PayloadModel> {
    * @param reference reference for this event
    * @param event event itself
    */
-  onReject(
-    req: Request,
-    reference: string,
-    event: CreateEvent<T>
-  ): Promise<void>;
+  onReject(req: Request, reference: string, event: CreateEvent<T>): Promise<T>;
 
   /**
    * This is called to ensure the viability of approval i.e. if the
@@ -49,7 +40,7 @@ export interface Check {
   /**
    * Status of the check
    */
-  status: 'success' | 'error';
+  status: "success" | "error";
   /**
    * Save this check for later
    */
