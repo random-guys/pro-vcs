@@ -39,15 +39,11 @@ export function setupAppRoutes<T extends PayloadModel>(
     `/${parent}/:reference/check`,
     auth.authCheck,
     async (req, res) => {
-      try {
-        dummyController.handleSuccess(
-          req,
-          res,
-          await merger.onCheck(req, req.params.reference)
-        );
-      } catch (err) {
-        dummyController.handleError(req, res, err);
-      }
+      dummyController.handleSuccess(
+        req,
+        res,
+        await merger.onCheck(req, req.params.reference)
+      );
     }
   );
 
@@ -59,15 +55,11 @@ export function setupAppRoutes<T extends PayloadModel>(
     auth.authCheck,
     validate(isCreateEvent),
     async (req, res) => {
-      try {
-        dummyController.handleSuccess(
-          req,
-          res,
-          await merger.onApprove(req, req.params.reference, req.body)
-        );
-      } catch (err) {
-        dummyController.handleError(req, res, err);
-      }
+      dummyController.handleSuccess(
+        req,
+        res,
+        await merger.onApprove(req, req.params.reference, req.body)
+      );
     }
   );
 
@@ -79,15 +71,11 @@ export function setupAppRoutes<T extends PayloadModel>(
     auth.authCheck,
     validate(isCreateEvent),
     async (req, res) => {
-      try {
-        dummyController.handleSuccess(
-          req,
-          res,
-          await merger.onReject(req, req.params.reference, req.body)
-        );
-      } catch (err) {
-        dummyController.handleError(req, res, err);
-      }
+      dummyController.handleSuccess(
+        req,
+        res,
+        await merger.onReject(req, req.params.reference, req.body)
+      );
     }
   );
 
