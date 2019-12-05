@@ -18,6 +18,8 @@ Run `yarn add @random-guys/pro-vcs`
 - [ ] proxy `ModelNotFound` errors from `inplace` methods to `InconsistentState` error
 - [ ] Testing something
 
+- [ ] Kareem the dream
+
 ### Pending Tests
 
 - `event.repo`
