@@ -17,6 +17,8 @@ Run `yarn add @random-guys/pro-vcs`
 - [ ] True data uniqueness by taking `object_state` into consideration
 - [ ] proxy `ModelNotFound` errors from `inplace` methods to `InconsistentState` error
 
+- [ ] Kareem the dream
+
 ### Pending Tests
 
 - `event.repo`
