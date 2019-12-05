@@ -16,6 +16,7 @@ Run `yarn add @random-guys/pro-vcs`
 - [ ] Arrange tests
 - [ ] True data uniqueness by taking `object_state` into consideration
 - [ ] proxy `ModelNotFound` errors from `inplace` methods to `InconsistentState` error
+- [ ] Testing something
 
 ### Pending Tests
 
