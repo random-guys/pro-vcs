@@ -8,7 +8,7 @@ import {
 } from "@random-guys/bucket";
 import startCase from "lodash/startCase";
 import { SchemaDefinition } from "mongoose";
-import { RequestHubService } from "../pro-hub-client/service";
+import { RemoteClient } from "../remote-vcs/service";
 import { mongoSet } from "../object.util";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
 import { ObjectSchema } from "./schema";
@@ -40,7 +40,7 @@ export class InconsistentState extends Error {
 export class ObjectRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
-  private hub: RequestHubService<T>;
+  private hub: RemoteClient<T>;
 
   /**
    * This creates an event re
@@ -62,7 +62,7 @@ export class ObjectRepository<T extends PayloadModel> {
       ObjectSchema(schema, exclude)
     );
     this.name = this.internalRepo.name;
-    this.hub = new RequestHubService(name);
+    this.hub = new RemoteClient();
   }
 
   /**

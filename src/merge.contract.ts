@@ -1,6 +1,6 @@
 import { Request } from "express";
-import { CreateEvent } from "./hub.model";
 import { PayloadModel } from "./objects";
+import { CreateEvent } from "./remote-vcs";
 
 export interface ICanMerge<T extends PayloadModel> {
   /**

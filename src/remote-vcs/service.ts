@@ -1,29 +1,23 @@
 import { publisher } from "@random-guys/eventbus";
 import kebabCase from "lodash/kebabCase";
+import { ObjectModel, PayloadModel } from "../objects";
 import {
   CloseEvent,
   DeleteObjectEvent,
   NewObjectEvent,
   PatchEvent,
   UpdateObjectEvent
-} from "./hub.model";
-import { ObjectModel, PayloadModel } from "./objects";
+} from "./event-types";
 
-export class HubProxy<T extends PayloadModel> {
-  static queue = "PROHUB_QUEUE";
-  constructor(private name: string) {
-    this.name = kebabCase(name);
-  }
-
+export class RemoteClient<T extends PayloadModel> {
   async newObjectEvent(newObject: ObjectModel<T>) {
     const event: NewObjectEvent<T> = {
-      event_scope: this.name,
       event_type: "create.new",
       reference: newObject.id,
       owner: newObject.__owner,
       payload: newObject.toObject()
     };
-    return await publisher.queue(HubProxy.queue, event);
+    return await publisher.queue(RemoteClient.queue, event);
   }
 
   async updateObjectEvent(freshObject: ObjectModel<T>, update: Partial<T>) {
@@ -35,7 +29,7 @@ export class HubProxy<T extends PayloadModel> {
       payload: freshObject.toObject(),
       update
     };
-    return await publisher.queue(HubProxy.queue, event);
+    return await publisher.queue(RemoteClient.queue, event);
   }
 
   async deleteObjectEvent(objectToDelete: ObjectModel<T>) {
@@ -46,7 +40,7 @@ export class HubProxy<T extends PayloadModel> {
       owner: objectToDelete.__owner,
       payload: objectToDelete.toObject()
     };
-    return await publisher.queue(HubProxy.queue, event);
+    return await publisher.queue(RemoteClient.queue, event);
   }
 
   async patch(reference: string, payload: ObjectModel<T>) {
@@ -56,7 +50,7 @@ export class HubProxy<T extends PayloadModel> {
       reference: reference,
       payload: payload.toObject()
     };
-    return await publisher.queue(HubProxy.queue, event);
+    return await publisher.queue(RemoteClient.queue, event);
   }
 
   async close(reference: string) {
@@ -65,6 +59,6 @@ export class HubProxy<T extends PayloadModel> {
       event_type: "close",
       reference
     };
-    return await publisher.queue(HubProxy.queue, event);
+    return await publisher.queue(RemoteClient.queue, event);
   }
 }
