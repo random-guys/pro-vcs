@@ -16,7 +16,7 @@ import Logger, { createLogger } from "bunyan";
 import express, { Request, Response } from "express";
 import { Server } from "http";
 import mongoose from "mongoose";
-import { PayloadModel } from "./event.model";
+import { PayloadModel } from "./objects";
 import { ICanMerge, Check } from "./merge.contract";
 import { WorkerConfig } from "./worker.contract";
 import { session } from "@random-guys/sp-auth";

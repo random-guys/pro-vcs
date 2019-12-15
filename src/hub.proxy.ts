@@ -1,13 +1,13 @@
 import { publisher } from "@random-guys/eventbus";
 import kebabCase from "lodash/kebabCase";
-import { EventModel, ObjectState, PayloadModel } from "./event.model";
 import {
+  CloseEvent,
   DeleteObjectEvent,
   NewObjectEvent,
-  UpdateObjectEvent,
   PatchEvent,
-  CloseEvent
+  UpdateObjectEvent
 } from "./hub.model";
+import { ObjectModel, PayloadModel } from "./objects";
 
 export class HubProxy<T extends PayloadModel> {
   static queue = "PROHUB_QUEUE";
@@ -15,7 +15,7 @@ export class HubProxy<T extends PayloadModel> {
     this.name = kebabCase(name);
   }
 
-  async newObjectEvent(newObject: EventModel<T>) {
+  async newObjectEvent(newObject: ObjectModel<T>) {
     const event: NewObjectEvent<T> = {
       event_scope: this.name,
       event_type: "create.new",
@@ -26,7 +26,7 @@ export class HubProxy<T extends PayloadModel> {
     return await publisher.queue(HubProxy.queue, event);
   }
 
-  async updateObjectEvent(freshObject: EventModel<T>, update: Partial<T>) {
+  async updateObjectEvent(freshObject: ObjectModel<T>, update: Partial<T>) {
     const event: UpdateObjectEvent<T> = {
       event_scope: this.name,
       event_type: "create.update",
@@ -38,7 +38,7 @@ export class HubProxy<T extends PayloadModel> {
     return await publisher.queue(HubProxy.queue, event);
   }
 
-  async deleteObjectEvent(objectToDelete: EventModel<T>) {
+  async deleteObjectEvent(objectToDelete: ObjectModel<T>) {
     const event: DeleteObjectEvent<T> = {
       event_scope: this.name,
       event_type: "create.delete",
@@ -49,7 +49,7 @@ export class HubProxy<T extends PayloadModel> {
     return await publisher.queue(HubProxy.queue, event);
   }
 
-  async patch(reference: string, payload: EventModel<T>) {
+  async patch(reference: string, payload: ObjectModel<T>) {
     const event: PatchEvent<T> = {
       event_scope: this.name,
       event_type: "patch",

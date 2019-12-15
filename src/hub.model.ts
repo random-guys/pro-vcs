@@ -1,4 +1,4 @@
-import { PayloadModel } from "./event.model";
+import { PayloadModel } from "./objects";
 
 export interface PatchEvent<T extends PayloadModel> {
   event_scope: string;

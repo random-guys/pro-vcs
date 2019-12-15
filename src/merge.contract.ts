@@ -1,7 +1,6 @@
 import { Request } from "express";
-import { PayloadModel } from "./event.model";
 import { CreateEvent } from "./hub.model";
-import { WorkerConfig } from "./worker.contract";
+import { PayloadModel } from "./objects";
 
 export interface ICanMerge<T extends PayloadModel> {
   /**

@@ -1,12 +1,12 @@
 import joi from "@hapi/joi";
-import { ObjectState } from "./event.model";
+import { ObjectState } from "./objects";
 
 const isPayloadModel = joi.object({
   object_state: joi
     .string()
     .trim()
     .required()
-    .valid(ObjectState.created, ObjectState.updated, ObjectState.deleted)
+    .valid(ObjectState.Created, ObjectState.Updated, ObjectState.Deleted)
 });
 
 export const isCreateEvent = joi.object({
@@ -24,13 +24,13 @@ export const isCreateEvent = joi.object({
     .string()
     .trim()
     .required()
-    .valid(ObjectState.created, ObjectState.updated, ObjectState.deleted),
+    .valid(ObjectState.Created, ObjectState.Updated, ObjectState.Deleted),
   payload: joi.when("object_state", {
-    is: joi.valid(ObjectState.created, ObjectState.updated),
+    is: joi.valid(ObjectState.Created, ObjectState.Updated),
     then: isPayloadModel.required()
   }),
   update: joi.when("object_state", {
-    is: joi.valid(ObjectState.updated),
+    is: joi.valid(ObjectState.Updated),
     then: joi.object().required()
   })
 });
