@@ -63,7 +63,7 @@ export class RPCService {
         const request = JSON.parse(msg.content.toString());
         this.logger.info({ req: request });
 
-        const response = await handler(request.body);
+        const response = await handler(request);
         this.sendReply(msg, "success", response);
 
         this.logger.info({ res: response });
