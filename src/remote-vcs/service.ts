@@ -55,6 +55,13 @@ export class RemoteClient<T extends PayloadModel> {
     await this.server.addMethod("onCheck", merger.onCheck.bind(merger));
   }
 
+  /**
+   * Allow users shutdown the server gracefully
+   */
+  async shutdownClient() {
+    return this.server.close();
+  }
+
   async newObjectEvent(newObject: ObjectModel<T>) {
     const event: NewObjectEvent<T> = {
       event_type: "create.new",
