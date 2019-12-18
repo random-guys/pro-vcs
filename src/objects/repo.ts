@@ -6,10 +6,12 @@ import {
   PaginationQueryResult,
   Query
 } from "@random-guys/bucket";
+import { Connection } from "amqplib";
+import Logger from "bunyan";
 import startCase from "lodash/startCase";
 import { SchemaDefinition } from "mongoose";
-import { RemoteClient } from "../remote-vcs/service";
 import { mongoSet } from "../object.util";
+import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
 import { ObjectSchema } from "./schema";
 
@@ -40,10 +42,10 @@ export class InconsistentState extends Error {
 export class ObjectRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
-  private hub: RemoteClient<T>;
+  private client: RemoteClient<T>;
 
   /**
-   * This creates an event re
+   * This creates an event repository
    * @param mongoose This will ensure the same connection is shared
    * @param name name of the repo. Note that this will become kebab case in
    * Mongo DB
@@ -62,7 +64,22 @@ export class ObjectRepository<T extends PayloadModel> {
       ObjectSchema(schema, exclude)
     );
     this.name = this.internalRepo.name;
-    this.hub = new RemoteClient();
+    this.client = new RemoteClient(this, this.name);
+  }
+
+  /**
+   * Setup a merger for this repo. Note this should be called only once(we
+   * expect you'll use one merger for your repo) else it would throw an error
+   * @param connection AMQP connection that drives the underlying comms
+   * @param remoteObj implementation of the merger
+   * @param logger logger to help track requests to the merger
+   */
+  setupMerger(
+    connection: Connection,
+    remoteObj: RemoteObject<T>,
+    logger: Logger
+  ) {
+    this.client.init(connection, remoteObj, logger);
   }
 
   /**
@@ -76,7 +93,7 @@ export class ObjectRepository<T extends PayloadModel> {
       __owner: owner,
       ...data
     });
-    await this.hub.newObjectEvent(newObject);
+    await this.client.newObjectEvent(newObject);
     return newObject.toObject();
   }
 
@@ -175,7 +192,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
       case ObjectState.Updated:
         const freshData = await this.inplaceUpdate(user, data, update);
-        await this.hub.patch(reference, freshData);
+        await this.client.patch(reference, freshData);
         return this.markup(user, freshData);
       case ObjectState.Deleted:
         throw new InvalidOperation(
@@ -183,7 +200,7 @@ export class ObjectRepository<T extends PayloadModel> {
         );
       case ObjectState.Stable:
         const newUpdate = await this.newUpdate(user, data, update);
-        await this.hub.updateObjectEvent(newUpdate, update);
+        await this.client.updateObjectEvent(newUpdate, update);
         return this.markup(user, newUpdate);
       default:
         throw new InconsistentState();
@@ -204,11 +221,11 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Updated:
       case ObjectState.Deleted:
         const freshData = await this.inplaceDelete(user, data);
-        await this.hub.close(reference);
+        await this.client.close(reference);
         return this.markup(user, freshData);
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
-        await this.hub.deleteObjectEvent(deletedData);
+        await this.client.deleteObjectEvent(deletedData);
         return this.markup(user, deletedData);
       default:
         throw new InconsistentState();
