@@ -1,10 +1,8 @@
 import { Connection } from "amqplib";
-import * as rabbitmq from "./utils/rabbitmq";
 import { RPCService, RPCClient } from "../src";
 import Logger from "bunyan";
 import dotenv from "dotenv";
-
-dotenv.config();
+import { publisher } from "@random-guys/eventbus";
 
 let connection: Connection;
 let log: Logger;
@@ -12,13 +10,15 @@ let server: RPCService;
 let client: RPCClient;
 
 beforeAll(async () => {
+  dotenv.config();
+
   log = Logger.createLogger({ name: "test" });
-  connection = await rabbitmq.connect();
+  await publisher.init(process.env.AMQP_URL);
   server = new RPCService("test", log);
   client = new RPCClient();
 
-  await server.init(connection);
-  await client.init(connection);
+  await server.init(publisher.getConnection());
+  await client.init(publisher.getConnection());
 });
 
 describe("RPC Communication", () => {
