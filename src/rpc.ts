@@ -115,7 +115,7 @@ export class RPCClient {
           if (message.properties.correlationId === correlationId) {
             const response = JSON.parse(message.content.toString());
             if (response.response_type === "error") {
-              reject(new ProxyError(response.body));
+              return reject(new ProxyError(response.body));
             }
             resolve(response.body);
           }
