@@ -16,19 +16,13 @@ export class RPCService {
    * Create an RPC service with the methods namespaced by `namespace`, and
    * the connection for creating the service's channel
    * @param namespace prefix to method queue names
-   * @param connection is used to create the service's channel
    * @param logger track what' going on from outside
    */
-  constructor(
-    namespace: string,
-    connection: Connection,
-    private logger: Logger
-  ) {
-    this.init(connection);
+  constructor(namespace: string, private logger: Logger) {
     this.namespace = namespace;
   }
 
-  private async init(connection: Connection) {
+  async init(connection: Connection) {
     this.channel = await connection.createChannel();
     await this.channel.prefetch(1);
   }
@@ -79,15 +73,8 @@ export class RPCService {
 
 export class RPCClient {
   private channel: Channel;
-  /**
-   * Setup a channel for the client
-   * @param connection connection used to create the client's channel
-   */
-  constructor(connection: Connection) {
-    this.init(connection);
-  }
 
-  private async init(connection: Connection) {
+  async init(connection: Connection) {
     this.channel = await connection.createChannel();
   }
 
@@ -142,7 +129,6 @@ export class ProxyError extends Error {
 
 /**
  * processError tries to replicate siber's error hand.
- *
  * @param err
  */
 function processError(err: Error) {
