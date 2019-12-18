@@ -3,6 +3,8 @@ import { publisher } from "@random-guys/eventbus";
 import mongoose from "mongoose";
 import { mockUser, User, UserSchema } from "../mocks/user";
 import { ObjectRepository, ObjectState } from "../src";
+import { createLogger } from "bunyan";
+import { UserMerger } from "../mocks/user/user.merger";
 
 describe("ProVCS Repo Constraints", () => {
   let mongooseNs: MongooseNamespace;
@@ -13,8 +15,15 @@ describe("ProVCS Repo Constraints", () => {
       "mongodb://localhost:27017/sterlingpro-test",
       defaultMongoOpts
     );
+    const logger = createLogger({ name: "user" });
     await publisher.init("amqp://localhost:5672");
     dataRepo = new ObjectRepository(mongooseNs, "User", UserSchema);
+    await dataRepo.initClient(
+      "PROHUB_QUEUE",
+      publisher.getConnection(),
+      new UserMerger(),
+      logger
+    );
   });
 
   afterAll(async () => {
