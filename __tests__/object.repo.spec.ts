@@ -1,22 +1,24 @@
 import { defaultMongoOpts, MongooseNamespace } from "@random-guys/bucket";
 import { publisher } from "@random-guys/eventbus";
+import { createLogger } from "bunyan";
+import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { mockUser, User, UserSchema } from "../mocks/user";
-import { ObjectRepository, ObjectState } from "../src";
-import { createLogger } from "bunyan";
 import { UserMerger } from "../mocks/user/user.merger";
+import { ObjectRepository, ObjectState } from "../src";
 
 describe("ProVCS Repo Constraints", () => {
   let mongooseNs: MongooseNamespace;
   let dataRepo: ObjectRepository<User>;
 
   beforeAll(async () => {
+    dotenv.config();
     mongooseNs = await mongoose.connect(
       process.env.MONGODB_URL,
       defaultMongoOpts
     );
     const logger = createLogger({ name: "user" });
-    await publisher.init(process.env.AMPQ_URL);
+    await publisher.init(process.env.AMQP_URL);
     dataRepo = new ObjectRepository(mongooseNs, "User", UserSchema);
     await dataRepo.initClient(
       "PROHUB_QUEUE",
