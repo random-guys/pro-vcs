@@ -7,6 +7,7 @@ import {
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from "mongoose";
 import { mapperConfig } from "../schema.util";
 import { ObjectModel, ObjectState, PayloadModel } from "./model";
+import values from "lodash/values";
 
 const MetadateSchema: SchemaDefinition = {
   __owner: { ...trimmedString, index: true },
@@ -14,7 +15,7 @@ const MetadateSchema: SchemaDefinition = {
   object_state: {
     ...trimmedLowercaseString,
     required: true,
-    enum: Object.keys(ObjectState)
+    enum: values(ObjectState)
   }
 };
 
