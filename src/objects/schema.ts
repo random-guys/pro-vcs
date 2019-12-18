@@ -5,7 +5,7 @@ import {
   uuid
 } from "@random-guys/bucket";
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from "mongoose";
-import { mapperConfig } from "../schema.util";
+import { mapperConfig } from "../schema";
 import { ObjectModel, ObjectState, PayloadModel } from "./model";
 import values from "lodash/values";
 

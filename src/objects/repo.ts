@@ -10,7 +10,7 @@ import { Connection } from "amqplib";
 import Logger from "bunyan";
 import startCase from "lodash/startCase";
 import { SchemaDefinition } from "mongoose";
-import { mongoSet } from "../object.util";
+import { mongoSet } from "../object";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
 import { ObjectSchema } from "./schema";
