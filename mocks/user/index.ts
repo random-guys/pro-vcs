@@ -1,11 +1,11 @@
-import { ObjectState } from "../../src/objects";
+import { ObjectState } from "../../src";
 export * from "./user.model";
 export * from "./user.schema";
 
 export function mockEmptyUserEvent() {
   return {
     __owner: "arewaolakunle",
-    object_state: ObjectState.created,
+    object_state: ObjectState.Created,
     ...mockUser()
   };
 }

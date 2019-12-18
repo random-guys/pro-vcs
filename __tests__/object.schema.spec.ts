@@ -29,7 +29,7 @@ describe("Event Schema Rules", () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
     const userObject = user.toObject();
 
-    expect(userObject.object_state).toBe(ObjectState.created);
+    expect(userObject.object_state).toBe(ObjectState.Created);
     expect(userObject.__patch).toBeUndefined();
     expect(userObject.__owner).toBeUndefined();
 
@@ -41,7 +41,7 @@ describe("Event Schema Rules", () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
     const userObject = user.toJSON();
 
-    expect(userObject.object_state).toBe(ObjectState.created);
+    expect(userObject.object_state).toBe(ObjectState.Created);
     expect(userObject.__patch).toBeUndefined();
     expect(userObject.__owner).toBeUndefined();
 
