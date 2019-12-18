@@ -64,22 +64,25 @@ export class ObjectRepository<T extends PayloadModel> {
       ObjectSchema(schema, exclude)
     );
     this.name = this.internalRepo.name;
-    this.client = new RemoteClient(this, this.name);
+    this.client = new RemoteClient(this);
   }
 
   /**
-   * Setup a merger for this repo. Note this should be called only once(we
-   * expect you'll use one merger for your repo) else it would throw an error
+   * Setup a merger for this repo as well as queue for object events. Note this
+   * should be called at most once(we expect you'll use one merger for your repo)
+   * else it would throw an error.
+   * @param remoteQueue name of the event queue for request events
    * @param connection AMQP connection that drives the underlying comms
    * @param remoteObj implementation of the merger
    * @param logger logger to help track requests to the merger
    */
-  setupMerger(
+  initClient(
+    remoteQueue: string,
     connection: Connection,
     remoteObj: RemoteObject<T>,
     logger: Logger
   ) {
-    this.client.init(connection, remoteObj, logger);
+    this.client.init(remoteQueue, connection, remoteObj, logger);
   }
 
   /**

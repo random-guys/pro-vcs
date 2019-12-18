@@ -19,28 +19,33 @@ import { RemoteObject } from "./merger";
  */
 export class RemoteClient<T extends PayloadModel> {
   private server: RPCService;
+  private remote: string;
 
   /**
    * Create a new client for talking to the VCS's remote
    * @param repository repository this client is to manage
-   * @param remote queue of the remote service
    */
-  constructor(
-    private repository: ObjectRepository<T>,
-    private remote: string
-  ) {}
+  constructor(private repository: ObjectRepository<T>) {}
 
   /**
    * Setup the RPC server for running the `RemoteObject` of
    * this repo
+   * @param remoteQueue name of the queue for object events
    * @param connection AMQP connection for the RPC server
    * @param remoteObj Instructions on how to merge, reject and validate
    * @param logger logger for RPC server.
    */
-  init(connection: Connection, remoteObj: RemoteObject<T>, logger: Logger) {
+  init(
+    remoteQueue: string,
+    connection: Connection,
+    remoteObj: RemoteObject<T>,
+    logger: Logger
+  ) {
     if (this.server) {
       throw new Error("RPC server has already been setup");
     }
+
+    this.remote = remoteQueue;
 
     this.server = new RPCService(this.repository.name, logger);
     this.server.init(connection);
