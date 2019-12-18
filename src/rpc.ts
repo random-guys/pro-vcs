@@ -2,7 +2,7 @@ import { IrisAPIError, IrisServerError } from "@random-guys/iris";
 import { getHTTPErrorCode } from "@random-guys/siber";
 import { Channel, Connection, ConsumeMessage } from "amqplib";
 import Logger from "bunyan";
-import { kebebCaseUpper } from "./string";
+import { snakeCaseUpper } from "./string";
 import uuid from "uuid/v4";
 
 /**
@@ -51,7 +51,7 @@ export class RPCService {
    * @param handler What the method actually does.
    */
   async addMethod<T, U>(method: string, handler: (t: T) => Promise<U>) {
-    const queueName = kebebCaseUpper(`${this.namespace}_${method}`);
+    const queueName = snakeCaseUpper(`${this.namespace}_${method}`);
     await this.channel.assertQueue(queueName, {
       durable: true
     });
@@ -120,7 +120,7 @@ export class RPCClient {
 
       // finally send the request
       const request = Buffer.from(JSON.stringify(args));
-      const methodQueue = kebebCaseUpper(`${namespace}_${method}`);
+      const methodQueue = snakeCaseUpper(`${namespace}_${method}`);
       this.channel.sendToQueue(methodQueue, request, {
         correlationId,
         replyTo: queueObj.queue

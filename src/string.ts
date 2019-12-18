@@ -1,6 +1,6 @@
-import kebabCase from "lodash/kebabCase";
+import snakeCase from "lodash/snakeCase";
 import toUpper from "lodash/toUpper";
 
-export function kebebCaseUpper(str: string) {
-  return toUpper(kebabCase(str));
+export function snakeCaseUpper(str: string) {
+  return toUpper(snakeCase(str));
 }
