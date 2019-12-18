@@ -103,7 +103,7 @@ export class RPCClient {
    * @param method specific method to call
    * @param args arguments for the method.
    */
-  async sendRequest(namespace: string, method: string, args: object) {
+  async sendRequest(namespace: string, method: string, args: any) {
     const queueObj = await this.channel.assertQueue("", { exclusive: true });
     const correlationId = uuid();
 
