@@ -12,11 +12,11 @@ describe("ProVCS Repo Constraints", () => {
 
   beforeAll(async () => {
     mongooseNs = await mongoose.connect(
-      "mongodb://localhost:27017/sterlingpro-test",
+      process.env.MONGODB_URL,
       defaultMongoOpts
     );
     const logger = createLogger({ name: "user" });
-    await publisher.init("amqp://localhost:5672");
+    await publisher.init(process.env.AMPQ_URL);
     dataRepo = new ObjectRepository(mongooseNs, "User", UserSchema);
     await dataRepo.initClient(
       "PROHUB_QUEUE",
