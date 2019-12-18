@@ -4,6 +4,7 @@ export * from "./merge.worker";
 export * from "./object.util";
 export * from "./objects";
 export * from "./remote-vcs";
+export * from "./rpc";
 export * from "./schema.util";
 export * from "./subscription.contract";
 export * from "./subscription.worker";
