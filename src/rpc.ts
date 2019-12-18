@@ -76,6 +76,8 @@ export class RPCService {
         this.channel.ack(msg);
       }
     });
+
+    return queueName;
   }
 }
 
