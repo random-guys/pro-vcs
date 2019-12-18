@@ -24,23 +24,21 @@ export class RemoteClient<T extends PayloadModel> {
    * Create a new client for talking to the VCS's remote
    * @param repository repository this client is to manage
    * @param remote queue of the remote service
-   * @param logger
    */
   constructor(
     private repository: ObjectRepository<T>,
-    private remote: string,
-    logger: Logger
-  ) {
-    this.server = new RPCService(repository.name, logger);
-  }
+    private remote: string
+  ) {}
 
   /**
    * Setup the RPC server for running the `RemoteObject` of
    * this repo
    * @param connection AMQP connection for the RPC server
    * @param remoteObj Instructions on how to merge, reject and validate
+   * @param logger logger for RPC server.
    */
-  init(connection: Connection, remoteObj: RemoteObject<T>) {
+  init(connection: Connection, remoteObj: RemoteObject<T>, logger: Logger) {
+    this.server = new RPCService(this.repository.name, logger);
     this.server.init(connection);
 
     this.server.addMethod("onApprove", remoteObj.onApprove.bind(remoteObj));
