@@ -73,16 +73,16 @@ export class ObjectRepository<T extends PayloadModel> {
    * else it would throw an error.
    * @param remoteQueue name of the event queue for request events
    * @param connection AMQP connection that drives the underlying comms
-   * @param remoteObj implementation of the merger
+   * @param merger implementation of the merger
    * @param logger logger to help track requests to the merger
    */
   initClient(
     remoteQueue: string,
     connection: Connection,
-    remoteObj: RemoteObject<T>,
+    merger: RemoteObject<T>,
     logger: Logger
   ) {
-    this.client.init(remoteQueue, connection, remoteObj, logger);
+    return this.client.init(remoteQueue, connection, merger, logger);
   }
 
   /**

@@ -32,13 +32,13 @@ export class RemoteClient<T extends PayloadModel> {
    * this repo
    * @param remoteQueue name of the queue for object events
    * @param connection AMQP connection for the RPC server
-   * @param remoteObj Instructions on how to merge, reject and validate
+   * @param merger Instructions on how to merge, reject and validate
    * @param logger logger for RPC server.
    */
-  init(
+  async init(
     remoteQueue: string,
     connection: Connection,
-    remoteObj: RemoteObject<T>,
+    merger: RemoteObject<T>,
     logger: Logger
   ) {
     if (this.server) {
@@ -48,11 +48,11 @@ export class RemoteClient<T extends PayloadModel> {
     this.remote = remoteQueue;
 
     this.server = new RPCService(this.repository.name, logger);
-    this.server.init(connection);
+    await this.server.init(connection);
 
-    this.server.addMethod("onApprove", remoteObj.onApprove.bind(remoteObj));
-    this.server.addMethod("onReject", remoteObj.onReject.bind(remoteObj));
-    this.server.addMethod("onCheck", remoteObj.onCheck.bind(remoteObj));
+    await this.server.addMethod("onApprove", merger.onApprove.bind(merger));
+    await this.server.addMethod("onReject", merger.onReject.bind(merger));
+    await this.server.addMethod("onCheck", merger.onCheck.bind(merger));
   }
 
   async newObjectEvent(newObject: ObjectModel<T>) {
