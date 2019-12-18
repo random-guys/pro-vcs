@@ -38,6 +38,10 @@ export class RemoteClient<T extends PayloadModel> {
    * @param logger logger for RPC server.
    */
   init(connection: Connection, remoteObj: RemoteObject<T>, logger: Logger) {
+    if (this.server) {
+      throw new Error("RPC server has already been setup");
+    }
+
     this.server = new RPCService(this.repository.name, logger);
     this.server.init(connection);
 
