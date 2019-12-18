@@ -21,10 +21,6 @@ beforeAll(async () => {
   await client.init(connection);
 });
 
-afterAll(async () => {
-  if (connection) await connection.close();
-});
-
 describe("RPC Communication", () => {
   it("should create a predictable queue name", async done => {
     const queue1 = await server.addMethod("beforeAll", x => {

@@ -30,7 +30,6 @@ describe("ProVCS Repo Constraints", () => {
     // clean up
     await mongooseNs.connection.dropDatabase();
     await mongooseNs.disconnect();
-    await publisher.close();
   });
 
   function cleanRepo(reference: string) {
