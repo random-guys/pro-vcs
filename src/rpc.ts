@@ -40,6 +40,14 @@ export class RPCService {
   }
 
   /**
+   * Shutdown all resources this server is using. Note that it doesn't attempt
+   * to wait for outgoing of incoming messages
+   */
+  async close() {
+    if (this.channel) return this.channel.close();
+  }
+
+  /**
    * addMethod setups a new consumer for requests on `method`
    * @param method name of the method
    * @param handler What the method actually does.
@@ -76,6 +84,14 @@ export class RPCClient {
 
   async init(connection: Connection) {
     this.channel = await connection.createChannel();
+  }
+
+  /**
+   * Shutdown all resources this client is using. Note that it doesn't attempt
+   * to wait for outgoing of incoming messages
+   */
+  async close() {
+    if (this.channel) return this.channel.close();
   }
 
   /**
