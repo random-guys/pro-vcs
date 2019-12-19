@@ -1,10 +1,10 @@
 import { MongooseNamespace } from "@random-guys/bucket";
 import { subscriber } from "@random-guys/eventbus";
+import { ConsumeMessage } from "amqplib";
 import Logger, { createLogger } from "bunyan";
 import express, { Request, Response } from "express";
 import mongoose from "mongoose";
-import { SubscriptionConfig, Handler } from "./subscription.contract";
-import { ConsumeMessage } from "amqplib";
+import { Handler, SubscriptionConfig } from "./contract";
 
 export async function withinWorker(
   config: SubscriptionConfig,

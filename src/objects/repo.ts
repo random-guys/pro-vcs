@@ -2,19 +2,21 @@ import {
   BaseRepository,
   DuplicateModelError,
   MongooseNamespace,
-  Query,
   PaginationQuery,
-  PaginationQueryResult
+  PaginationQueryResult,
+  Query
 } from "@random-guys/bucket";
+import { Connection } from "amqplib";
+import Logger from "bunyan";
 import startCase from "lodash/startCase";
 import { SchemaDefinition } from "mongoose";
-import { asObject, EventModel, ObjectState, PayloadModel } from "./event.model";
-import { EventSchema } from "./event.schema";
-import { HubProxy } from "./hub.proxy";
-import { mongoSet } from "./object.util";
+import { mongoSet } from "../object";
+import { RemoteClient, RemoteObject } from "../remote-vcs";
+import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
+import { ObjectSchema } from "./schema";
 
 /**
- * This error is usually thrown when a user tries
+ * `InvalidOperation` is usually thrown when a user tries
  * to perform an operation on a frozen payload
  */
 export class InvalidOperation extends Error {
@@ -24,7 +26,7 @@ export class InvalidOperation extends Error {
 }
 
 /**
- * This should only be throw if invariants are not properly
+ * `InconsistentState` should only be thrown if invariants are not properly
  * enforced, or possible concurrency issues.
  */
 export class InconsistentState extends Error {
@@ -33,13 +35,17 @@ export class InconsistentState extends Error {
   }
 }
 
-export class EventRepository<T extends PayloadModel> {
-  readonly internalRepo: BaseRepository<EventModel<T>>;
+/**
+ * `ObjectRepository` is base repository for reviewable objects. It tries it's best
+ * to mirror `bucket's` `BaseRepository` methods.
+ */
+export class ObjectRepository<T extends PayloadModel> {
+  readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
-  private hub: HubProxy<T>;
+  private client: RemoteClient<T>;
 
   /**
-   *
+   * This creates an event repository
    * @param mongoose This will ensure the same connection is shared
    * @param name name of the repo. Note that this will become kebab case in
    * Mongo DB
@@ -55,10 +61,28 @@ export class EventRepository<T extends PayloadModel> {
     this.internalRepo = new BaseRepository(
       mongoose,
       name,
-      EventSchema(schema, exclude)
+      ObjectSchema(schema, exclude)
     );
     this.name = this.internalRepo.name;
-    this.hub = new HubProxy(name);
+    this.client = new RemoteClient(this);
+  }
+
+  /**
+   * Setup a merger for this repo as well as queue for object events. Note this
+   * should be called at most once(we expect you'll use one merger for your repo)
+   * else it would throw an error.
+   * @param remoteQueue name of the event queue for request events
+   * @param connection AMQP connection that drives the underlying comms
+   * @param merger implementation of the merger
+   * @param logger logger to help track requests to the merger
+   */
+  initClient(
+    remoteQueue: string,
+    connection: Connection,
+    merger: RemoteObject<T>,
+    logger: Logger
+  ) {
+    return this.client.init(remoteQueue, connection, merger, logger);
   }
 
   /**
@@ -68,11 +92,11 @@ export class EventRepository<T extends PayloadModel> {
    */
   async create(owner: string, data: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
-      object_state: ObjectState.created,
+      object_state: ObjectState.Created,
       __owner: owner,
       ...data
     });
-    await this.hub.newObjectEvent(newObject);
+    await this.client.newObjectEvent(newObject);
     return newObject.toObject();
   }
 
@@ -82,7 +106,7 @@ export class EventRepository<T extends PayloadModel> {
    */
   async createApproved(data: Partial<T>): Promise<T> {
     const newObject = await this.internalRepo.create({
-      object_state: ObjectState.stable,
+      object_state: ObjectState.Stable,
       ...data
     });
     return newObject.toObject();
@@ -168,18 +192,18 @@ export class EventRepository<T extends PayloadModel> {
   ): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
-      case ObjectState.created:
-      case ObjectState.updated:
+      case ObjectState.Created:
+      case ObjectState.Updated:
         const freshData = await this.inplaceUpdate(user, data, update);
-        await this.hub.patch(reference, freshData);
+        await this.client.patch(reference, freshData);
         return this.markup(user, freshData);
-      case ObjectState.deleted:
+      case ObjectState.Deleted:
         throw new InvalidOperation(
           "Can't update an item up that is to be deleted"
         );
-      case ObjectState.stable:
+      case ObjectState.Stable:
         const newUpdate = await this.newUpdate(user, data, update);
-        await this.hub.updateObjectEvent(newUpdate, update);
+        await this.client.updateObjectEvent(newUpdate, update);
         return this.markup(user, newUpdate);
       default:
         throw new InconsistentState();
@@ -196,15 +220,15 @@ export class EventRepository<T extends PayloadModel> {
   async delete(user: string, reference: string): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
-      case ObjectState.created:
-      case ObjectState.updated:
-      case ObjectState.deleted:
+      case ObjectState.Created:
+      case ObjectState.Updated:
+      case ObjectState.Deleted:
         const freshData = await this.inplaceDelete(user, data);
-        await this.hub.close(reference);
+        await this.client.close(reference);
         return this.markup(user, freshData);
-      case ObjectState.stable:
+      case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
-        await this.hub.deleteObjectEvent(deletedData);
+        await this.client.deleteObjectEvent(deletedData);
         return this.markup(user, deletedData);
       default:
         throw new InconsistentState();
@@ -219,23 +243,23 @@ export class EventRepository<T extends PayloadModel> {
   async merge(reference: string): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
-      case ObjectState.created:
+      case ObjectState.Created:
         return this.stabilise(data).then(asObject);
-      case ObjectState.updated:
+      case ObjectState.Updated:
         return this.internalRepo
           .atomicUpdate(
-            { _id: reference, object_state: ObjectState.updated },
+            { _id: reference, object_state: ObjectState.Updated },
             { $set: data.__patch }
           )
           .then(asObject);
-      case ObjectState.deleted:
+      case ObjectState.Deleted:
         return this.internalRepo
           .destroy({
             _id: reference,
-            object_state: ObjectState.deleted
+            object_state: ObjectState.Deleted
           })
           .then(asObject);
-      case ObjectState.stable:
+      case ObjectState.Stable:
         throw new InvalidOperation("Cannot merge a stable object");
       default:
         throw new InconsistentState();
@@ -249,24 +273,24 @@ export class EventRepository<T extends PayloadModel> {
   async reject(reference: string): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
-      case ObjectState.created:
+      case ObjectState.Created:
         return data.remove().then(asObject);
-      case ObjectState.updated:
-      case ObjectState.deleted:
+      case ObjectState.Updated:
+      case ObjectState.Deleted:
         return this.stabilise(data).then(asObject);
-      case ObjectState.stable:
+      case ObjectState.Stable:
         throw new InvalidOperation("Cannot reject a stable object");
       default:
         throw new InconsistentState();
     }
   }
 
-  protected stabilise(data: EventModel<T>) {
+  protected stabilise(data: ObjectModel<T>) {
     return this.internalRepo.atomicUpdate(
       { _id: data.id, object_state: data.object_state },
       {
         $set: {
-          object_state: ObjectState.stable,
+          object_state: ObjectState.Stable,
           __owner: null,
           __patch: null
         }
@@ -276,7 +300,7 @@ export class EventRepository<T extends PayloadModel> {
 
   protected inplaceUpdate(
     user: string,
-    data: EventModel<T>,
+    data: ObjectModel<T>,
     partial: Partial<T>
   ) {
     if (data.__owner !== user) {
@@ -293,7 +317,7 @@ export class EventRepository<T extends PayloadModel> {
       },
       {
         $set:
-          data.object_state === ObjectState.created
+          data.object_state === ObjectState.Created
             ? cleanPartial
             : {
                 __patch: mongoSet(data.__patch, cleanPartial)
@@ -302,14 +326,14 @@ export class EventRepository<T extends PayloadModel> {
     );
   }
 
-  protected inplaceDelete(user: string, data: EventModel<T>) {
+  protected inplaceDelete(user: string, data: ObjectModel<T>) {
     if (data.__owner !== user) {
       throw new InvalidOperation(
         `Can't update an unapproved ${startCase(this.internalRepo.name)}`
       );
     }
 
-    if (data.object_state === ObjectState.created) {
+    if (data.object_state === ObjectState.Created) {
       return data.remove();
     }
 
@@ -317,17 +341,17 @@ export class EventRepository<T extends PayloadModel> {
     return this.stabilise(data);
   }
 
-  protected newUpdate(user: string, data: EventModel<T>, update: Partial<T>) {
+  protected newUpdate(user: string, data: ObjectModel<T>, update: Partial<T>) {
     const { object_state, ...cleanUpdate } = update;
     // mark object as frozen
     return this.internalRepo.atomicUpdate(
       {
         _id: data.id,
-        object_state: ObjectState.stable
+        object_state: ObjectState.Stable
       },
       {
         $set: {
-          object_state: ObjectState.updated,
+          object_state: ObjectState.Updated,
           __owner: user,
           __patch: cleanUpdate
         }
@@ -335,28 +359,28 @@ export class EventRepository<T extends PayloadModel> {
     );
   }
 
-  protected newDelete(user: string, data: EventModel<T>) {
+  protected newDelete(user: string, data: ObjectModel<T>) {
     // mark object as frozen
     return this.internalRepo.atomicUpdate(
       {
         _id: data.id,
-        object_state: ObjectState.stable
+        object_state: ObjectState.Stable
       },
       {
         $set: {
-          object_state: ObjectState.deleted,
+          object_state: ObjectState.Deleted,
           __owner: user
         }
       }
     );
   }
 
-  protected markup(user: string, data: EventModel<T>) {
-    if (data.object_state !== ObjectState.stable && data.__owner !== user) {
-      data.object_state = ObjectState.frozen;
+  protected markup(user: string, data: ObjectModel<T>) {
+    if (data.object_state !== ObjectState.Stable && data.__owner !== user) {
+      data.object_state = ObjectState.Frozen;
     }
 
-    if (data.object_state === ObjectState.updated && data.__owner === user) {
+    if (data.object_state === ObjectState.Updated && data.__owner === user) {
       data = mongoSet(data, data.__patch);
     }
 
@@ -367,7 +391,7 @@ export class EventRepository<T extends PayloadModel> {
     if (!allowNew) {
       return {
         ...query,
-        object_state: { $ne: ObjectState.created }
+        object_state: { $ne: ObjectState.Created }
       };
     }
     return query;

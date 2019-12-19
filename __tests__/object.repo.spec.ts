@@ -1,28 +1,37 @@
 import { defaultMongoOpts, MongooseNamespace } from "@random-guys/bucket";
 import { publisher } from "@random-guys/eventbus";
+import { createLogger } from "bunyan";
+import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { mockUser, User, UserSchema } from "../mocks/user";
-import { EventRepository } from "../src";
-import { ObjectState } from "../src/event.model"; // test couldn't detect eventType from outside
+import { UserMerger } from "../mocks/user/user.merger";
+import { ObjectRepository, ObjectState } from "../src";
 
 describe("ProVCS Repo Constraints", () => {
   let mongooseNs: MongooseNamespace;
-  let dataRepo: EventRepository<User>;
+  let dataRepo: ObjectRepository<User>;
 
   beforeAll(async () => {
+    dotenv.config();
     mongooseNs = await mongoose.connect(
-      "mongodb://localhost:27017/sterlingpro-test",
+      process.env.MONGODB_URL,
       defaultMongoOpts
     );
-    await publisher.init("amqp://localhost:5672");
-    dataRepo = new EventRepository(mongooseNs, "User", UserSchema);
+    const logger = createLogger({ name: "user" });
+    await publisher.init(process.env.AMQP_URL);
+    dataRepo = new ObjectRepository(mongooseNs, "User", UserSchema);
+    await dataRepo.initClient(
+      "PROHUB_QUEUE",
+      publisher.getConnection(),
+      new UserMerger(),
+      logger
+    );
   });
 
   afterAll(async () => {
     // clean up
     await mongooseNs.connection.dropDatabase();
     await mongooseNs.disconnect();
-    await publisher.close();
   });
 
   function cleanRepo(reference: string) {
@@ -34,9 +43,9 @@ describe("ProVCS Repo Constraints", () => {
     const readerUser = await dataRepo.get("someone", user.id);
 
     // owner should see created
-    expect(user.object_state).toBe(ObjectState.created);
+    expect(user.object_state).toBe(ObjectState.Created);
     // ensure no other user can see created
-    expect(readerUser.object_state).toBe(ObjectState.frozen);
+    expect(readerUser.object_state).toBe(ObjectState.Frozen);
 
     // cleanup afterwards
     await cleanRepo(user.id);
@@ -79,8 +88,8 @@ describe("ProVCS Repo Constraints", () => {
     expect(readerUser.email_address).toBe("jasming@gmail.com");
 
     // what can the user do
-    expect(writeUser.object_state).toBe(ObjectState.updated);
-    expect(readerUser.object_state).toBe(ObjectState.frozen);
+    expect(writeUser.object_state).toBe(ObjectState.Updated);
+    expect(readerUser.object_state).toBe(ObjectState.Frozen);
 
     // cleanup afterwards
     await cleanRepo(user.id);
@@ -130,8 +139,8 @@ describe("ProVCS Repo Constraints", () => {
     expect(writeUser.email_address).toBe(readerUser.email_address);
 
     // what can the user do
-    expect(writeUser.object_state).toBe(ObjectState.deleted);
-    expect(readerUser.object_state).toBe(ObjectState.frozen);
+    expect(writeUser.object_state).toBe(ObjectState.Deleted);
+    expect(readerUser.object_state).toBe(ObjectState.Frozen);
 
     await cleanRepo(user.id);
   });
@@ -144,7 +153,7 @@ describe("ProVCS Repo Constraints", () => {
     const readerUser = await dataRepo.get("someone", user.id);
 
     // stabilised
-    expect(readerUser.object_state).toBe(ObjectState.stable);
+    expect(readerUser.object_state).toBe(ObjectState.Stable);
     expect(writeUser.object_state).toBe(readerUser.object_state);
 
     await cleanRepo(user.id);
@@ -199,7 +208,7 @@ describe("ProVCS Repo Constraints", () => {
       }
     });
     expect(aUser.length).toBe(1);
-    expect(aUser[0].object_state).toBe(ObjectState.updated);
+    expect(aUser[0].object_state).toBe(ObjectState.Updated);
     expect(aUser[0].email_address).toBe("looj@rx.com");
 
     await dataRepo.internalRepo.model.deleteMany({}).exec();

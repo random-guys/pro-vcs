@@ -1,25 +1,25 @@
-import { ObjectState } from '../../src/event.model';
-export * from './user.model';
-export * from './user.schema';
+import { ObjectState } from "../../src";
+export * from "./user.model";
+export * from "./user.schema";
 
 export function mockEmptyUserEvent() {
   return {
-    __owner: 'arewaolakunle',
-    object_state: ObjectState.created,
+    __owner: "arewaolakunle",
+    object_state: ObjectState.Created,
     ...mockUser()
   };
 }
 
-export function mockApprovedUser(email = 'jasming@gmail.com') {
+export function mockApprovedUser(email = "jasming@gmail.com") {
   return {
-    object_state: ObjectState.stable,
+    object_state: ObjectState.Stable,
     ...mockUser(email)
   };
 }
 
 export function mockFrozenUser(owner: string) {
   return {
-    object_state: ObjectState.frozen,
+    object_state: ObjectState.Frozen,
     __owner: owner,
     ...mockUser()
   };
@@ -28,14 +28,14 @@ export function mockFrozenUser(owner: string) {
 export function mockUnapprovedUpdate(owner: string, email: string) {
   return {
     __owner: owner,
-    object_state: ObjectState.updated,
+    object_state: ObjectState.Updated,
     ...mockUser(email)
   };
 }
 
-export function mockUser(email = 'jasming@gmail.com') {
+export function mockUser(email = "jasming@gmail.com") {
   return {
-    fullname: 'Jasmine Joe',
+    fullname: "Jasmine Joe",
     email_address: email
   };
 }
