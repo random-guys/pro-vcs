@@ -1,3 +1,4 @@
+import "reflect-metadata";
 export * from "./object";
 export * from "./objects";
 export * from "./remote-vcs";
