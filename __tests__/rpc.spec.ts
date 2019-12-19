@@ -58,11 +58,11 @@ describe("RPC Communication", () => {
   });
 
   it("should throw an error when the server throws an error", async () => {
-    await server.addMethod("returnRequest", x => {
+    await server.addMethod("rejectRequest", x => {
       return Promise.reject("TestError");
     });
 
-    const resp = client.sendRequest("test", "returnRequest", "x");
+    const resp = client.sendRequest("test", "rejectRequest", "x");
     expect(resp).rejects.toMatch(/TestError/);
   });
 });
