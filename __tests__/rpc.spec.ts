@@ -1,10 +1,8 @@
-import { Connection } from "amqplib";
-import { RPCService, RPCClient } from "../src";
+import { publisher } from "@random-guys/eventbus";
 import Logger from "bunyan";
 import dotenv from "dotenv";
-import { publisher } from "@random-guys/eventbus";
+import { RPCClient, RPCService } from "../src";
 
-let connection: Connection;
 let log: Logger;
 let server: RPCService;
 let client: RPCClient;
