@@ -130,6 +130,8 @@ export class RPCClient {
         correlationId,
         replyTo: queueObj.queue
       });
+    }).finally(() => {
+      return this.channel.deleteQueue(queueObj.queue);
     });
   }
 }
