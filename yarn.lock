@@ -327,6 +327,16 @@
     npm-cli-login "^0.1.1"
     uuid "^3.3.2"
 
+"@random-guys/bucket@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@random-guys/bucket/-/bucket-0.7.2.tgz#40b4d81021f70a96afc879b704a32585d89bd702"
+  integrity sha512-DokyuMQtiWBewKqwXONkMUrfKq/REOe8Wlb8oE+hdOJ7oPnEtwAgOI0ZXKPUWp4ShSTq2N+Ld6IzIPUgieGSUA==
+  dependencies:
+    http-status-codes "^1.3.2"
+    mongoose "^5.7.1"
+    npm-cli-login "^0.1.1"
+    uuid "^3.3.2"
+
 "@random-guys/eventbus@^2.0.1":
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/@random-guys/eventbus/-/eventbus-2.0.1.tgz#8eaa1e5edac88844a3b4443f5b7b13c03324f4c6"
