@@ -33,6 +33,9 @@ export class RPCClient {
       this.channel.consume(
         queueObj.queue,
         message => {
+          // closing shop
+          if (!message) return;
+
           if (message.properties.correlationId === correlationId) {
             const response = JSON.parse(message.content.toString());
             if (response.response_type === "error") {
@@ -51,6 +54,8 @@ export class RPCClient {
         correlationId,
         replyTo: queueObj.queue
       });
+    }).finally(() => {
+      return this.channel.deleteQueue(queueObj.queue);
     });
   }
 }
