@@ -63,6 +63,6 @@ describe("RPC Communication", () => {
     });
 
     const send = client.sendRequest("test", "rejectRequest", "x");
-    expect(send).rejects.toMatch("TestError");
+    expect(send).rejects.toMatchObject(new Error("TestError"));
   });
 });
