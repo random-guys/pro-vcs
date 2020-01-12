@@ -3,6 +3,7 @@ import { getHTTPErrorCode } from "@random-guys/siber";
 import { Channel, Connection, ConsumeMessage } from "amqplib";
 import Logger from "bunyan";
 import { snakeCaseUpper } from "../string";
+import { RPCRequest } from "./net";
 
 /**
  * RPCService is a class that encapsulates.
@@ -51,7 +52,10 @@ export class RPCService {
    * @param method name of the method
    * @param handler What the method actually does.
    */
-  async addMethod<T, U>(method: string, handler: (t: T) => Promise<U>) {
+  async addMethod<T, U>(
+    method: string,
+    handler: (t: RPCRequest<T>) => Promise<U>
+  ) {
     const queueName = snakeCaseUpper(`${this.namespace}_${method}`);
     await this.channel.assertQueue(queueName, {
       durable: true
@@ -59,13 +63,13 @@ export class RPCService {
 
     this.channel.consume(queueName, async msg => {
       try {
-        const request = JSON.parse(msg.content.toString());
-        this.logger.info({ req: request });
+        const req = JSON.parse(msg.content.toString());
+        this.logger.info({ req });
 
-        const response = await handler(request);
+        const response = await handler(req);
         this.sendReply(msg, "success", response);
 
-        this.logger.info({ res: response });
+        this.logger.info({ req, res: response });
       } catch (err) {
         const errorDesc = processError(err);
         this.sendReply(msg, "error", errorDesc);

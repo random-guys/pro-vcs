@@ -1,6 +1,7 @@
 import { Channel, Connection } from "amqplib";
 import uuid from "uuid/v4";
 import { snakeCaseUpper } from "../string";
+import { createRequest } from "./net";
 
 export class RPCClient {
   private channel: Channel;
@@ -26,7 +27,7 @@ export class RPCClient {
    */
   async sendRequest(namespace: string, method: string, args: any) {
     const queueObj = await this.channel.assertQueue("", { exclusive: true });
-    const correlationId = uuid();
+    const req = createRequest(namespace, method, args);
 
     return new Promise((resolve, reject) => {
       // setup handler first
@@ -36,7 +37,7 @@ export class RPCClient {
           // closing shop
           if (!message) return;
 
-          if (message.properties.correlationId === correlationId) {
+          if (message.properties.correlationId === req.id) {
             const response = JSON.parse(message.content.toString());
             if (response.response_type === "error") {
               return reject(new ProxyError(response.body));
@@ -48,10 +49,10 @@ export class RPCClient {
       );
 
       // finally send the request
-      const request = Buffer.from(JSON.stringify(args));
+      const request = Buffer.from(JSON.stringify(req));
       const methodQueue = snakeCaseUpper(`${namespace}_${method}`);
       this.channel.sendToQueue(methodQueue, request, {
-        correlationId,
+        correlationId: req.id,
         replyTo: queueObj.queue
       });
     }).finally(() => {
