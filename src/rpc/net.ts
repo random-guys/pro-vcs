@@ -125,7 +125,7 @@ export function createErrorResponse<T, U>(
 ): RPCResponse<U> {
   return {
     message,
-    status: "ok",
+    status: "error",
     request_id: req.id,
     date: new Date()
   };
