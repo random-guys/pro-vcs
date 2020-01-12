@@ -1,9 +1,7 @@
-import { IrisAPIError, IrisServerError } from "@random-guys/iris";
-import { getHTTPErrorCode } from "@random-guys/siber";
-import { Channel, Connection, ConsumeMessage } from "amqplib";
+import { Channel, Connection } from "amqplib";
 import Logger from "bunyan";
 import { snakeCaseUpper } from "../string";
-import { RPCRequest } from "./net";
+import { createErrorResponse, createResponse, RPCRequest } from "./net";
 
 /**
  * RPCService is a class that encapsulates.
@@ -25,18 +23,6 @@ export class RPCService {
   async init(connection: Connection) {
     this.channel = await connection.createChannel();
     await this.channel.prefetch(1);
-  }
-
-  private sendReply<T>(
-    msg: ConsumeMessage,
-    responseType: "success" | "error",
-    body: T
-  ) {
-    const response = JSON.stringify({ response_type: responseType, body });
-    const { replyTo, correlationId } = msg.properties;
-    this.channel.sendToQueue(replyTo, Buffer.from(response), {
-      correlationId
-    });
   }
 
   /**
@@ -62,19 +48,26 @@ export class RPCService {
     });
 
     this.channel.consume(queueName, async msg => {
+      const req: RPCRequest<T> = JSON.parse(msg.content.toString());
+      this.logger.info({ req });
+
       try {
-        const req = JSON.parse(msg.content.toString());
-        this.logger.info({ req });
+        const body = await handler(req);
+        const res = createResponse(req, body);
+        const response = Buffer.from(JSON.stringify(res));
+        this.channel.sendToQueue(msg.properties.replyTo, response, {
+          correlationId: req.id
+        });
 
-        const response = await handler(req);
-        this.sendReply(msg, "success", response);
-
-        this.logger.info({ req, res: response });
+        this.logger.info({ req, res: body });
       } catch (err) {
-        const errorDesc = processError(err);
-        this.sendReply(msg, "error", errorDesc);
+        const res = createErrorResponse(req, err.message);
+        const response = Buffer.from(JSON.stringify(res));
+        this.channel.sendToQueue(msg.properties.replyTo, response, {
+          correlationId: req.id
+        });
 
-        this.logger.info({ err });
+        this.logger.info({ err, req, res });
       } finally {
         this.channel.ack(msg);
       }
@@ -82,26 +75,4 @@ export class RPCService {
 
     return queueName;
   }
-}
-
-/**
- * processError tries to replicate siber's error hand.
- * @param err
- */
-function processError(err: Error) {
-  const code = getHTTPErrorCode(err);
-
-  if (err instanceof IrisAPIError) {
-    err["data"] = err.data.data;
-    err["message"] = err.data.message;
-  }
-
-  if (err instanceof IrisServerError || code === 500) {
-    err["original_message"] = err.message;
-    err["message"] = "We are having internal issues. Please bear with us";
-  }
-
-  err["code"] = code;
-
-  return err;
 }

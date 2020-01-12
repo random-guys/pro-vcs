@@ -1,7 +1,6 @@
 import { Channel, Connection } from "amqplib";
-import uuid from "uuid/v4";
 import { snakeCaseUpper } from "../string";
-import { createRequest } from "./net";
+import { createRequest, RPCResponse } from "./net";
 
 export class RPCClient {
   private channel: Channel;
@@ -42,11 +41,11 @@ export class RPCClient {
           if (!message) return;
 
           if (message.properties.correlationId === req.id) {
-            const response = JSON.parse(message.content.toString());
-            if (response.response_type === "error") {
-              return reject(new ProxyError(response.body));
+            const res: RPCResponse<T> = JSON.parse(message.content.toString());
+            if (res.status === "error") {
+              return reject(new Error(res.message));
             }
-            resolve(response.body);
+            resolve(res.body);
           }
         },
         { noAck: true }
