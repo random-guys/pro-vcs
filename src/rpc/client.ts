@@ -25,11 +25,15 @@ export class RPCClient {
    * @param method specific method to call
    * @param args arguments for the method.
    */
-  async sendRequest(namespace: string, method: string, args: any) {
+  async sendRequest<T>(
+    namespace: string,
+    method: string,
+    args: any
+  ): Promise<T> {
     const queueObj = await this.channel.assertQueue("", { exclusive: true });
     const req = createRequest(namespace, method, args);
 
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       // setup handler first
       this.channel.consume(
         queueObj.queue,
@@ -56,7 +60,7 @@ export class RPCClient {
         replyTo: queueObj.queue
       });
     }).finally(() => {
-      return this.channel.deleteQueue(queueObj.queue);
+      this.channel.deleteQueue(queueObj.queue);
     });
   }
 }
