@@ -49,7 +49,7 @@ export class RPCService {
 
     this.channel.consume(queueName, async msg => {
       const req: RPCRequest<T> = JSON.parse(msg.content.toString());
-      this.logger.info({ req });
+      this.logger.info({ rpc_req: req });
 
       try {
         const body = await handler(req);
@@ -59,7 +59,7 @@ export class RPCService {
           correlationId: req.id
         });
 
-        this.logger.info({ req, res: body });
+        this.logger.info({ rpc_req: req, rpc_res: res });
       } catch (err) {
         const res = createErrorResponse(req, err.message);
         const response = Buffer.from(JSON.stringify(res));
@@ -67,7 +67,7 @@ export class RPCService {
           correlationId: req.id
         });
 
-        this.logger.info({ err, req, res });
+        this.logger.info({ err, rpc_req: req, rpc_res: res });
       } finally {
         this.channel.ack(msg);
       }
