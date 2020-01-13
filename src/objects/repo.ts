@@ -182,20 +182,22 @@ export class ObjectRepository<T extends PayloadModel> {
    * Update an object in place if unstable or create a pending update
    * if stable.
    * @param user who wants to make such update
-   * @param reference ID of object to be updated
+   * @param query MongoDB query object or id string
    * @param update updates to be made
    */
   async update(
     user: string,
-    reference: string,
+    query: string | object,
     update: Partial<T>
   ): Promise<T> {
-    const data = await this.internalRepo.byID(reference);
+    const parsedQuery = this.internalRepo.getQuery(query);
+    const data = await this.internalRepo.byQuery(parsedQuery);
+
     switch (data.object_state) {
       case ObjectState.Created:
       case ObjectState.Updated:
         const freshData = await this.inplaceUpdate(user, data, update);
-        await this.client.patch(reference, freshData);
+        await this.client.patch(data.id, freshData);
         return this.markup(user, freshData);
       case ObjectState.Deleted:
         throw new InvalidOperation(
@@ -211,20 +213,31 @@ export class ObjectRepository<T extends PayloadModel> {
   }
 
   /**
+   * Update an object without going through the approval process.
+   * @param query MongoDB query object or id string
+   * @param update update to be applied
+   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
+   */
+  updateApproved(query: string | object, update: object, throwOnNull = true) {
+    return this.internalRepo.atomicUpdate(query, update, throwOnNull);
+  }
+
+  /**
    * Creates a pending delete for a stable object. Otherwise it just rolls back
    * changes introduced. Fails if the `user` passed is not the object's temporary
    * owner.
    * @param user who wants to do this
-   * @param reference ID of object to be deleted
+   * @param query MongoDB query object or id string
    */
-  async delete(user: string, reference: string): Promise<T> {
-    const data = await this.internalRepo.byID(reference);
+  async delete(user: string, query: string | object): Promise<T> {
+    const parsedQuery = this.internalRepo.getQuery(query);
+    const data = await this.internalRepo.byQuery(parsedQuery);
     switch (data.object_state) {
       case ObjectState.Created:
       case ObjectState.Updated:
       case ObjectState.Deleted:
         const freshData = await this.inplaceDelete(user, data);
-        await this.client.close(reference);
+        await this.client.close(data.id);
         return this.markup(user, freshData);
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
@@ -233,6 +246,15 @@ export class ObjectRepository<T extends PayloadModel> {
       default:
         throw new InconsistentState();
     }
+  }
+
+  /**
+   * Permanently deletes a document without the approval process.
+   * @param query MongoDB query object or id string
+   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
+   */
+  deleteApproved(query: string | object, throwOnNull = true) {
+    return this.internalRepo.destroy(query, throwOnNull);
   }
 
   /**
