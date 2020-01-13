@@ -1,10 +1,8 @@
-import { Connection } from "amqplib";
-import { RPCService, RPCClient } from "../src";
+import { publisher } from "@random-guys/eventbus";
 import Logger from "bunyan";
 import dotenv from "dotenv";
-import { publisher } from "@random-guys/eventbus";
+import { RPCClient, RPCService } from "../src";
 
-let connection: Connection;
 let log: Logger;
 let server: RPCService;
 let client: RPCClient;
@@ -12,7 +10,9 @@ let client: RPCClient;
 beforeAll(async () => {
   dotenv.config();
 
-  log = Logger.createLogger({ name: "test" });
+  log = Logger.createLogger({
+    name: "test"
+  });
   await publisher.init(process.env.AMQP_URL);
   server = new RPCService("test", log);
   client = new RPCClient();
@@ -40,8 +40,8 @@ describe("RPC Communication", () => {
   it("should send a request to the server", async () => {
     expect.assertions(1);
 
-    await server.addMethod("requestOnly", x => {
-      expect(x).toBe("x");
+    await server.addMethod("requestOnly", req => {
+      expect(req.body).toBe("x");
       return null;
     });
 
@@ -49,8 +49,8 @@ describe("RPC Communication", () => {
   });
 
   it("should return a response to the client", async () => {
-    await server.addMethod("returnRequest", x => {
-      return Promise.resolve(x);
+    await server.addMethod("returnRequest", req => {
+      return Promise.resolve(req.body);
     });
 
     const res = await client.sendRequest("test", "returnRequest", "x");
@@ -58,11 +58,11 @@ describe("RPC Communication", () => {
   });
 
   it("should throw an error when the server throws an error", async () => {
-    await server.addMethod("rejectRequest", x => {
-      return Promise.reject("TestError");
+    await server.addMethod("rejectRequest", _ => {
+      return Promise.reject(new Error("TestError"));
     });
 
-    const resp = client.sendRequest("test", "rejectRequest", "x");
-    expect(resp).rejects.toMatch(/TestError/);
+    const send = client.sendRequest("test", "rejectRequest", "x");
+    expect(send).rejects.toMatchObject(new Error("TestError"));
   });
 });
