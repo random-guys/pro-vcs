@@ -217,16 +217,17 @@ export class ObjectRepository<T extends PayloadModel> {
    * changes introduced. Fails if the `user` passed is not the object's temporary
    * owner.
    * @param user who wants to do this
-   * @param reference ID of object to be deleted
+   * @param query MongoDB query object or id string
    */
-  async delete(user: string, reference: string): Promise<T> {
-    const data = await this.internalRepo.byID(reference);
+  async delete(user: string, query: string | object): Promise<T> {
+    const parsedQuery = this.internalRepo.getQuery(query);
+    const data = await this.internalRepo.byQuery(parsedQuery);
     switch (data.object_state) {
       case ObjectState.Created:
       case ObjectState.Updated:
       case ObjectState.Deleted:
         const freshData = await this.inplaceDelete(user, data);
-        await this.client.close(reference);
+        await this.client.close(data.id);
         return this.markup(user, freshData);
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
