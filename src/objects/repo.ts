@@ -182,20 +182,22 @@ export class ObjectRepository<T extends PayloadModel> {
    * Update an object in place if unstable or create a pending update
    * if stable.
    * @param user who wants to make such update
-   * @param reference ID of object to be updated
+   * @param query MongoDB query object or id string
    * @param update updates to be made
    */
   async update(
     user: string,
-    reference: string,
+    query: string | object,
     update: Partial<T>
   ): Promise<T> {
-    const data = await this.internalRepo.byID(reference);
+    const parsedQuery = this.internalRepo.getQuery(query);
+    const data = await this.internalRepo.byQuery(parsedQuery);
+
     switch (data.object_state) {
       case ObjectState.Created:
       case ObjectState.Updated:
         const freshData = await this.inplaceUpdate(user, data, update);
-        await this.client.patch(reference, freshData);
+        await this.client.patch(data.id, freshData);
         return this.markup(user, freshData);
       case ObjectState.Deleted:
         throw new InvalidOperation(
