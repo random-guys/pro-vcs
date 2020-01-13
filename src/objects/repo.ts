@@ -213,6 +213,16 @@ export class ObjectRepository<T extends PayloadModel> {
   }
 
   /**
+   * Update an object without going through the approval process.
+   * @param query MongoDB query object or id string
+   * @param update update to be applied
+   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
+   */
+  updateApproved(query: string | object, update: object, throwOnNull = true) {
+    return this.internalRepo.atomicUpdate(query, update, throwOnNull);
+  }
+
+  /**
    * Creates a pending delete for a stable object. Otherwise it just rolls back
    * changes introduced. Fails if the `user` passed is not the object's temporary
    * owner.
@@ -236,6 +246,15 @@ export class ObjectRepository<T extends PayloadModel> {
       default:
         throw new InconsistentState();
     }
+  }
+
+  /**
+   * Permanently deletes a document without the approval process.
+   * @param query MongoDB query object or id string
+   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
+   */
+  deleteApproved(query: string | object, throwOnNull = true) {
+    return this.internalRepo.destroy(query, throwOnNull);
   }
 
   /**
