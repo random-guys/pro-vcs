@@ -261,8 +261,9 @@ export class ObjectRepository<T extends PayloadModel> {
    * Stabilises an object based on its state. Returns the newest state
    * of the object
    * @param reference ID of the object being stabilised
+   * @param updates optional updates to add when merging
    */
-  async merge(reference: string): Promise<T> {
+  async merge(reference: string, updates?: object): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
       case ObjectState.Created:
@@ -271,7 +272,7 @@ export class ObjectRepository<T extends PayloadModel> {
         return this.internalRepo
           .atomicUpdate(
             { _id: reference, object_state: ObjectState.Updated },
-            { $set: data.__patch }
+            { $set: { ...data.__patch, ...updates } }
           )
           .then(asObject);
       case ObjectState.Deleted:
@@ -291,8 +292,9 @@ export class ObjectRepository<T extends PayloadModel> {
   /**
    * Rolls back any unapproved changes on an object
    * @param reference ID of the object being normalized
+   * @param updates optional updates to add when merging
    */
-  async reject(reference: string): Promise<T> {
+  async reject(reference: string, updates?: object): Promise<T> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
       case ObjectState.Created:
@@ -307,11 +309,12 @@ export class ObjectRepository<T extends PayloadModel> {
     }
   }
 
-  protected stabilise(data: ObjectModel<T>) {
+  protected stabilise(data: ObjectModel<T>, updates?: object) {
     return this.internalRepo.atomicUpdate(
       { _id: data.id, object_state: data.object_state },
       {
         $set: {
+          ...updates,
           object_state: ObjectState.Stable,
           __owner: null,
           __patch: null
