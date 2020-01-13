@@ -65,10 +65,13 @@ Run `yarn add @random-guys/pro-vcs`
     - [ ] stabilises `updated` objects with the new data. i.e other users can now see the changes
     - [ ] obliterates `deleted` objects
     - [ ] throws `InvalidOperation` for `stable` objects
+    - [ ] stabilises `created` with additional updates
+    - [ ] stabilises `updated` with additional updates
   - `reject`
     - [ ] cleans up `created` objects
     - [ ] reverts `updated/deleted` objects
     - [ ] throws `InvalidOperation` for `stable` objects
+    - [ ] reverts `updated` with additional updates
 - `merge.app`
   - [ ] `onApprove`
   - [ ] `onReject`
