@@ -45,7 +45,7 @@ describe("RPC Communication", () => {
       return null;
     });
 
-    await client.sendRequest("test", "requestOnly", "x");
+    await client.call("test", "requestOnly", "x");
   });
 
   it("should return a response to the client", async () => {
@@ -53,7 +53,7 @@ describe("RPC Communication", () => {
       return Promise.resolve(req.body);
     });
 
-    const res = await client.sendRequest("test", "returnRequest", "x");
+    const res = await client.call("test", "returnRequest", "x");
     expect(res).toBe("x");
   });
 
@@ -62,7 +62,7 @@ describe("RPC Communication", () => {
       return Promise.reject(new Error("TestError"));
     });
 
-    const send = client.sendRequest("test", "rejectRequest", "x");
+    const send = client.call("test", "rejectRequest", "x");
     expect(send).rejects.toMatchObject(new Error("TestError"));
   });
 });
