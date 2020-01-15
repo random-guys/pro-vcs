@@ -1,6 +1,5 @@
 import { PayloadModel } from "../objects";
 import { RPCRequest } from "../rpc/net";
-import { CreateEvent } from "./event-types";
 
 /**
  * RemoteObject is an object that can be merged or rejected.
@@ -12,10 +11,7 @@ export interface RemoteObject<T extends PayloadModel> {
    * @param event the source event
    * @param req RPC request that you can use for interservice requests
    */
-  onApprove(
-    event: CreateEvent<T>,
-    req?: RPCRequest<CreateEvent<T>>
-  ): Promise<T>;
+  onApprove(event: FinalRequest, req?: RPCRequest<FinalRequest>): Promise<T>;
 
   /**
    * onReject cleans up an object when rejected by the remote. Note that
@@ -24,7 +20,7 @@ export interface RemoteObject<T extends PayloadModel> {
    * @param event the source event
    * @param req RPC request that you can use for interservice requests
    */
-  onReject(event: CreateEvent<T>, req?: RPCRequest<CreateEvent<T>>): Promise<T>;
+  onReject(event: FinalRequest, req?: RPCRequest<FinalRequest>): Promise<T>;
 
   /**
    * onCheck confirms that the object can be approved by confirming business
@@ -47,4 +43,23 @@ export interface CheckResult {
    * Description of check if any
    */
   message?: string;
+}
+
+/**
+ * FinalRequest is the what is expected from a hub when requesting a `merge`
+ * or a `reject`
+ */
+export interface FinalRequest {
+  /**
+   * the type of event the lead to the request
+   */
+  event_type: "create" | "update" | "delete";
+  /**
+   * the intiator of the request
+   */
+  owner: string;
+  /**
+   * the ID of the object
+   */
+  reference: string;
 }
