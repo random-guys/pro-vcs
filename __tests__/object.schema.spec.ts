@@ -4,7 +4,7 @@ import {
   MongooseNamespace
 } from "@random-guys/bucket";
 import mongoose from "mongoose";
-import { mockEmptyUserEvent, User, UserSchema } from "../mocks/user";
+import { mockEmptyUserEvent, User, UserSchema } from "./mocks/user";
 import { ObjectModel, ObjectSchema, ObjectState } from "../src";
 
 describe("Event Schema Rules", () => {
