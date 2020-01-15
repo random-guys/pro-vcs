@@ -5,13 +5,12 @@ import { ObjectModel, ObjectRepository, PayloadModel } from "../objects";
 import { RPCService } from "../rpc";
 import {
   CloseEvent,
-  CreateEvent,
   DeleteObjectEvent,
   NewObjectEvent,
   PatchEvent,
   UpdateObjectEvent
 } from "./event-types";
-import { CheckResult, RemoteObject } from "./merger";
+import { CheckResult, FinalRequest, RemoteObject } from "./merger";
 
 /**
  * RemoteClient manages all interactions between a pro-vcs repo and its
@@ -51,10 +50,10 @@ export class RemoteClient<T extends PayloadModel> {
     this.server = new RPCService(this.repository.name, logger);
     await this.server.init(connection);
 
-    await this.server.addMethod<CreateEvent<T>, T>("onApprove", req =>
+    await this.server.addMethod<FinalRequest, T>("onApprove", req =>
       merger.onApprove(req.body, req)
     );
-    await this.server.addMethod<CreateEvent<T>, T>("onReject", req =>
+    await this.server.addMethod<FinalRequest, T>("onReject", req =>
       merger.onReject(req.body, req)
     );
     await this.server.addMethod<string, CheckResult[]>("onCheck", req =>
