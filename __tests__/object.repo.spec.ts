@@ -3,8 +3,8 @@ import { publisher } from "@random-guys/eventbus";
 import { createLogger } from "bunyan";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import { mockUser, User, UserSchema } from "../mocks/user";
-import { UserMerger } from "../mocks/user/user.merger";
+import { mockUser, User, UserSchema } from "./mocks/user";
+import { UserMerger } from "./mocks/user/user.merger";
 import { ObjectRepository, ObjectState } from "../src";
 
 describe("ProVCS Repo Constraints", () => {
