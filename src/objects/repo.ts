@@ -301,7 +301,7 @@ export class ObjectRepository<T extends PayloadModel> {
         return data.remove().then(asObject);
       case ObjectState.Updated:
       case ObjectState.Deleted:
-        return this.stabilise(data).then(asObject);
+        return this.stabilise(data, updates).then(asObject);
       case ObjectState.Stable:
         throw new InvalidOperation("Cannot reject a stable object");
       default:
