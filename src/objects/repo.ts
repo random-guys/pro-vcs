@@ -129,7 +129,7 @@ export class ObjectRepository<T extends PayloadModel> {
    */
   async get(user: string, reference: string): Promise<T> {
     const maybePending = await this.internalRepo.byID(reference);
-    return this.markup(user, maybePending);
+    return this.markup(user, maybePending, true);
   }
 
   /**
@@ -137,13 +137,13 @@ export class ObjectRepository<T extends PayloadModel> {
    * into account pending updates.
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
-   * @param allowNew allow mongodb return newly created objects. `false` by default
+   * @param fresh allow mongodb return unstable objects. `false` by default
    */
-  async byQuery(user: string, query: object, allowNew = false): Promise<T> {
+  async byQuery(user: string, query: object, fresh = false): Promise<T> {
     const maybePending = await this.internalRepo.byQuery(
-      this.allowNew(query, allowNew)
+      this.allowNew(query, fresh)
     );
-    return this.markup(user, maybePending);
+    return this.markup(user, maybePending, fresh);
   }
 
   /**
@@ -151,30 +151,30 @@ export class ObjectRepository<T extends PayloadModel> {
    * into account pending updates.
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
-   * @param allowNew allow mongodb return newly created objects. `false` by default
+   * @param fresh allow mongodb return unstable objects. `false` by default
    */
-  async all(user: string, query: Query = {}, allowNew = false): Promise<T[]> {
-    query.conditions = this.allowNew(query.conditions, allowNew);
+  async all(user: string, query: Query = {}, fresh = false): Promise<T[]> {
+    query.conditions = this.allowNew(query.conditions, fresh);
     const maybes = await this.internalRepo.all(query);
-    return maybes.map(e => this.markup(user, e));
+    return maybes.map(e => this.markup(user, e, fresh));
   }
 
   /**
    * This is like `all`, but it returns paginated results
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
-   * @param allowNew allow mongodb return newly created objects. `false` by default
+   * @param fresh allow mongodb return unstable objects. `false` by default
    */
   async list(
     user: string,
     query: PaginationQuery,
-    allowNew = false
+    fresh = false
   ): Promise<PaginationQueryResult<T>> {
-    query.conditions = this.allowNew(query.conditions, allowNew);
+    query.conditions = this.allowNew(query.conditions, fresh);
     const paginatedResults = await this.internalRepo.list(query);
     return {
       ...paginatedResults,
-      result: paginatedResults.result.map(e => this.markup(user, e))
+      result: paginatedResults.result.map(e => this.markup(user, e, fresh))
     };
   }
 
@@ -198,7 +198,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Updated:
         const freshData = await this.inplaceUpdate(user, data, update);
         await this.client.patch(data.id, freshData);
-        return this.markup(user, freshData);
+        return this.markup(user, freshData, true);
       case ObjectState.Deleted:
         throw new InvalidOperation(
           "Can't update an item up that is to be deleted"
@@ -206,7 +206,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Stable:
         const newUpdate = await this.newUpdate(user, data, update);
         await this.client.updateObjectEvent(newUpdate, update);
-        return this.markup(user, newUpdate);
+        return this.markup(user, newUpdate, true);
       default:
         throw new InconsistentState();
     }
@@ -238,11 +238,11 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Deleted:
         const freshData = await this.inplaceDelete(user, data);
         await this.client.close(data.id);
-        return this.markup(user, freshData);
+        return this.markup(user, freshData, true);
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
         await this.client.deleteObjectEvent(deletedData);
-        return this.markup(user, deletedData);
+        return this.markup(user, deletedData, true);
       default:
         throw new InconsistentState();
     }
@@ -301,7 +301,7 @@ export class ObjectRepository<T extends PayloadModel> {
         return data.remove().then(asObject);
       case ObjectState.Updated:
       case ObjectState.Deleted:
-        return this.stabilise(data).then(asObject);
+        return this.stabilise(data, updates).then(asObject);
       case ObjectState.Stable:
         throw new InvalidOperation("Cannot reject a stable object");
       default:
@@ -400,7 +400,11 @@ export class ObjectRepository<T extends PayloadModel> {
     );
   }
 
-  protected markup(user: string, data: ObjectModel<T>) {
+  protected markup(user: string, data: ObjectModel<T>, fresh: boolean) {
+    if (!fresh) {
+      return data.toObject();
+    }
+
     if (data.object_state !== ObjectState.Stable && data.__owner !== user) {
       data.object_state = ObjectState.Frozen;
     }
