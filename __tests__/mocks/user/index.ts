@@ -1,4 +1,4 @@
-import { ObjectState } from "../../src";
+import { ObjectState } from "../../../src";
 export * from "./user.model";
 export * from "./user.schema";
 
