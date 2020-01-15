@@ -1,6 +1,7 @@
+import { RequestContract } from "@random-guys/iris";
 import { Channel, Connection } from "amqplib";
 import { snakeCaseUpper } from "../string";
-import { createRequest, RPCResponse } from "./net";
+import { createRequest, fromRequest, RPCRequest, RPCResponse } from "./net";
 
 export class RPCClient {
   private channel: Channel;
@@ -18,21 +19,13 @@ export class RPCClient {
   }
 
   /**
-   * sendRequest sends the arg to a Queue, for the method under the given
-   * namespace.
-   * @param namespace group for methods
-   * @param method specific method to call
-   * @param args arguments for the method.
+   * sendRequest sends an RPC request based on how it's defined
+   * @param req generated `RPCRequest`
    */
-  async sendRequest<T>(
-    namespace: string,
-    method: string,
-    args: any
-  ): Promise<T> {
+  async sendRequest<T, U>(req: RPCRequest<T>): Promise<U> {
     const queueObj = await this.channel.assertQueue("", { exclusive: true });
-    const req = createRequest(namespace, method, args);
 
-    return new Promise<T>((resolve, reject) => {
+    return new Promise<U>((resolve, reject) => {
       // setup handler first
       this.channel.consume(
         queueObj.queue,
@@ -41,7 +34,7 @@ export class RPCClient {
           if (!message) return;
 
           if (message.properties.correlationId === req.id) {
-            const res: RPCResponse<T> = JSON.parse(message.content.toString());
+            const res: RPCResponse<U> = JSON.parse(message.content.toString());
             if (res.status === "error") {
               return reject(new Error(res.message));
             }
@@ -53,7 +46,7 @@ export class RPCClient {
 
       // finally send the request
       const request = Buffer.from(JSON.stringify(req));
-      const methodQueue = snakeCaseUpper(`${namespace}_${method}`);
+      const methodQueue = snakeCaseUpper(`${req.namespace}_${req.method}`);
       this.channel.sendToQueue(methodQueue, request, {
         correlationId: req.id,
         replyTo: queueObj.queue
@@ -61,6 +54,34 @@ export class RPCClient {
     }).finally(() => {
       this.channel.deleteQueue(queueObj.queue);
     });
+  }
+
+  /**
+   * call sends the arg to a Queue, for the method under the given
+   * namespace.
+   * @param namespace group for methods
+   * @param method specific method to call
+   * @param args arguments for the method.
+   */
+  async call<T, U>(namespace: string, method: string, args: T) {
+    return this.sendRequest(createRequest(namespace, method, args));
+  }
+
+  /**
+   * callWith sends the arg to a Queue, for the method under the given
+   * namespace, using the passed request to help track it.
+   * @param req request to use to for distributed tracing
+   * @param namespace group for methods
+   * @param method specific method to call
+   * @param args arguments for the method.
+   */
+  async callWith<T, U>(
+    req: RequestContract,
+    namespace: string,
+    method: string,
+    args: T
+  ): Promise<U> {
+    return this.sendRequest(fromRequest(req, namespace, method, args));
   }
 }
 
