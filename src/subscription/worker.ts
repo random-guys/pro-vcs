@@ -1,4 +1,8 @@
-import { MongooseNamespace } from "@random-guys/bucket";
+import {
+  defaultMongoOpts,
+  MongooseNamespace,
+  secureMongoOpts
+} from "@random-guys/bucket";
 import { subscriber } from "@random-guys/eventbus";
 import { ConsumeMessage } from "amqplib";
 import Logger, { createLogger } from "bunyan";
@@ -6,6 +10,16 @@ import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Handler, SubscriptionConfig } from "./contract";
 
+/**
+ * Create and run an eventbus subsciptions in a worker, setting on
+ * the DB and other related resources needed by such subscriptions.
+ * @param config contains all configurations for resources and possible
+ * resource setup and teardown operations
+ * @param registrar sets up consumers/subscriptions after resouces have
+ * been setup
+ * @returns async stop function that can be used to shutdown the worker. Note
+ * that it also shutsdown the worker on `CTRL-C` signal
+ */
 export async function withinWorker(
   config: SubscriptionConfig,
   registrar: (logger: Logger) => void
@@ -32,14 +46,15 @@ export async function withinWorker(
   healthApp.get("/", (req: Request, res: Response) => {
     res.status(200).json({ status: "UP" });
   });
+
   const httpServer = healthApp.listen(config.app_port);
   logger.info(`🌋 Health check running on port ${config.app_port}`);
 
   // connect to mongodb
-  mongooseCon = await mongoose.connect(config.mongodb_url, {
-    useNewUrlParser: true,
-    useCreateIndex: true
-  });
+  mongooseCon = await mongoose.connect(
+    config.mongodb_url,
+    config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
+  );
   logger.info("📦  MongoDB Connected!");
 
   // call user's setup code
@@ -57,7 +72,9 @@ export async function withinWorker(
       logger.info(`Shutting down ${config.service_name} worker`);
 
       await subscriber.close();
+
       await mongooseCon.disconnect();
+
       httpServer.close();
 
       // custom exit handler
@@ -80,6 +97,13 @@ export async function withinWorker(
   return stop;
 }
 
+/**
+ * Create a wrapper around the passed handler to handle parsing.
+ * Note that it shutsdown it's host process once
+ * the queue is closed
+ * @param logger logger for when the queue is about to shutdown
+ * @param handler handler to be wrapped
+ */
 export function createHandler<T>(logger: Logger, handler: Handler<T>) {
   return async (message: ConsumeMessage) => {
     if (message === null) {
