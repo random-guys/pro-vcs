@@ -27,14 +27,13 @@ export async function withinWorker(
   let mongooseCon: MongooseNamespace;
 
   const logger = createLogger({
-    name: `${config.service_name}-worker`,
+    name: config.service_name,
     serializers: {
       err: Logger.stdSerializers.err
     }
   });
 
   await subscriber.init(config.amqp_url);
-
   const subscriberConnection = subscriber.getConnection();
   subscriberConnection.on("error", (err: any) => {
     logger.error(err);
@@ -102,7 +101,7 @@ export async function withinWorker(
  * Note that it shutsdown it's host process once
  * the queue is closed
  * @param logger logger for when the queue is about to shutdown
- * @param handler handler to be wrapped
+ * @param handler handler to be wrapped.
  */
 export function createHandler<T>(logger: Logger, handler: Handler<T>) {
   return async (message: ConsumeMessage) => {
