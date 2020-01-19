@@ -8,7 +8,7 @@ export interface WorkerConfig extends MongoConfig {
   /**
    * Name of the parent service
    */
-  service_name: string;
+  worker_name: string;
   /**
    * Whether it should use `bucket`'s `defaultMongoOpts` or `secureMongoOpts`
    */

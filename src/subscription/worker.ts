@@ -27,7 +27,7 @@ export async function withinWorker(
   let mongooseCon: MongooseNamespace;
 
   const logger = createLogger({
-    name: config.service_name,
+    name: config.worker_name,
     serializers: {
       err: Logger.stdSerializers.err
     }
@@ -68,7 +68,7 @@ export async function withinWorker(
   // the dependencies
   const stop = async () => {
     try {
-      logger.info(`Shutting down ${config.service_name} worker`);
+      logger.info(`Shutting down ${config.worker_name} worker`);
 
       await subscriber.close();
 
@@ -83,7 +83,7 @@ export async function withinWorker(
     } catch (err) {
       logger.error(
         err,
-        `An error occured while stopping ${config.service_name} worker`
+        `An error occured while stopping ${config.worker_name} worker`
       );
       process.exit(1);
     }
