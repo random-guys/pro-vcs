@@ -11,21 +11,21 @@ import mongoose from "mongoose";
 import { Handler, SubscriptionConfig } from "./contract";
 
 /**
- * Create and run an eventbus subsciptions in a worker, setting on
- * the DB and other related resources needed by such subscriptions.
+ * Create start and stop functions for a worker, setting up the
+ * DB and other related resources needed by subcribers or producers
+ * in the worker.
  * @param config contains all configurations for resources and possible
  * resource setup and teardown operations
  * @param registrar sets up consumers/subscriptions after resouces have
  * been setup
- * @returns async stop function that can be used to shutdown the worker. Note
- * that it also shutsdown the worker on `CTRL-C` signal
+ * @returns {[Function, Function]} async start and stop functions that
+ * can be used to startup and shutdown the worker. Note that it also
+ * shuts down the worker on `CTRL-C` signal
  */
-export async function withinWorker(
+export function withinWorker(
   config: SubscriptionConfig,
   registrar: (logger: Logger) => void
-) {
-  let mongooseCon: MongooseNamespace;
-
+): [Function, Function] {
   const logger = createLogger({
     name: config.worker_name,
     serializers: {
@@ -33,36 +33,41 @@ export async function withinWorker(
     }
   });
 
-  await subscriber.init(config.amqp_url);
-  const subscriberConnection = subscriber.getConnection();
-  subscriberConnection.on("error", (err: any) => {
-    logger.error(err);
-    process.exit(1);
-  });
+  let mongooseCon: MongooseNamespace;
+  let httpServer: any;
 
-  // Start simple server for  health check
-  const healthApp = express();
-  healthApp.get("/", (req: Request, res: Response) => {
-    res.status(200).json({ status: "UP" });
-  });
+  const start = async () => {
+    await subscriber.init(config.amqp_url);
+    const subscriberCon = subscriber.getConnection();
+    subscriberCon.on("error", (err: any) => {
+      logger.error(err);
+      process.exit(1);
+    });
 
-  const httpServer = healthApp.listen(config.app_port);
-  logger.info(`🌋 Health check running on port ${config.app_port}`);
+    // Start simple server for  health check
+    const healthApp = express();
+    healthApp.get("/", (_req: Request, res: Response) => {
+      res.status(200).json({ status: "UP" });
+    });
 
-  // connect to mongodb
-  mongooseCon = await mongoose.connect(
-    config.mongodb_url,
-    config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
-  );
-  logger.info("📦  MongoDB Connected!");
+    httpServer = healthApp.listen(config.app_port);
+    logger.info(`🌋 Health check running on port ${config.app_port}`);
 
-  // call user's setup code
-  if (config.onStart) {
-    await config.onStart(logger);
-  }
+    // connect to mongodb
+    mongooseCon = await mongoose.connect(
+      config.mongodb_url,
+      config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
+    );
+    logger.info("📦 MongoDB Connected!");
 
-  // now we can register handlers
-  registrar(logger);
+    // call user's setup code
+    if (config.onStart) {
+      await config.onStart(logger);
+    }
+
+    // now we can register handlers
+    registrar(logger);
+  };
 
   // create stop function. This adds 20 lines but has to be here due
   // the dependencies
@@ -93,7 +98,7 @@ export async function withinWorker(
     await stop();
   });
 
-  return stop;
+  return [start, stop];
 }
 
 /**
