@@ -1,11 +1,14 @@
 import { publisher } from "@random-guys/eventbus";
 import { Connection } from "amqplib";
 import Logger from "bunyan";
+import { encode } from "../jwt";
 import { ObjectModel, ObjectRepository, PayloadModel } from "../objects";
+import { asObject } from "../objects/model";
 import { RPCService } from "../rpc";
 import {
   CloseEvent,
   DeleteObjectEvent,
+  NewBatchObjectEvent,
   NewObjectEvent,
   PatchEvent,
   UpdateObjectEvent
@@ -75,6 +78,23 @@ export class RemoteClient<T extends PayloadModel> {
       reference: newObject.id,
       owner: newObject.__owner,
       payload: newObject.toObject()
+    };
+    return await publisher.queue(this.remote, event);
+  }
+
+  async newBatchObjectEvent(owner: string, newObjects: ObjectModel<T>[]) {
+    // merge all IDs into one.
+    const reference = await encode(
+      this.repository.name,
+      newObjects.map(obj => obj.id)
+    );
+
+    const event: NewBatchObjectEvent<T> = {
+      reference,
+      owner,
+      event_type: "create.new.batch",
+      namespace: this.repository.name,
+      payload: newObjects.map(asObject)
     };
     return await publisher.queue(this.remote, event);
   }
