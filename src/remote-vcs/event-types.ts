@@ -105,13 +105,13 @@ export interface UpdateObjectEvent<T extends PayloadModel> {
    */
   owner: string;
   /**
-   * The initial object before the change
+   * The latest version of the object
    */
   payload: T;
   /**
-   * The changes applied
+   * The older version of the object
    */
-  update: Partial<T>;
+  previous_version: T;
 }
 
 /**
