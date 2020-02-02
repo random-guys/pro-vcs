@@ -1,14 +1,12 @@
 import { publisher } from "@random-guys/eventbus";
 import { Connection } from "amqplib";
 import Logger from "bunyan";
-import { encode } from "../jwt";
+import { mongoSet } from "../object";
 import { ObjectModel, ObjectRepository, PayloadModel } from "../objects";
-import { asObject } from "../objects/model";
 import { RPCService } from "../rpc";
 import {
   CloseEvent,
   DeleteObjectEvent,
-  NewBatchObjectEvent,
   NewObjectEvent,
   PatchEvent,
   UpdateObjectEvent
@@ -82,31 +80,17 @@ export class RemoteClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  async newBatchObjectEvent(owner: string, newObjects: ObjectModel<T>[]) {
-    // merge all IDs into one.
-    const reference = await encode(
-      this.repository.name,
-      newObjects.map(obj => obj.id)
-    );
+  async updateObjectEvent(oldObject: ObjectModel<T>, update: Partial<T>) {
+    const oldPayload = oldObject.toObject();
+    const freshPayload = mongoSet(oldPayload, oldObject.__patch);
 
-    const event: NewBatchObjectEvent<T> = {
-      reference,
-      owner,
-      event_type: "create.new.batch",
-      namespace: this.repository.name,
-      payload: newObjects.map(asObject)
-    };
-    return await publisher.queue(this.remote, event);
-  }
-
-  async updateObjectEvent(freshObject: ObjectModel<T>, update: Partial<T>) {
     const event: UpdateObjectEvent<T> = {
       event_type: "create.update",
       namespace: this.repository.name,
-      reference: freshObject.id,
-      owner: freshObject.__owner,
-      payload: freshObject.toObject(),
-      update
+      reference: oldObject.id,
+      owner: oldObject.__owner,
+      payload: freshPayload,
+      previous_version: oldPayload
     };
     return await publisher.queue(this.remote, event);
   }

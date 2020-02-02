@@ -101,25 +101,6 @@ export class ObjectRepository<T extends PayloadModel> {
   }
 
   /**
-   * Create frozen objects and notify `pro-hub`
-   * @param owner ID of use that can make further changes to this object until approved
-   * @param data list of items to be saved
-   */
-  async createBatch(owner: string, data: Partial<T>[]): Promise<T[]> {
-    const newObjects = await Promise.all(
-      data.map(item =>
-        this.internalRepo.create({
-          object_state: ObjectState.Created,
-          __owner: owner,
-          ...item
-        })
-      )
-    );
-    await this.client.newBatchObjectEvent(owner, newObjects);
-    return newObjects.map(asObject);
-  }
-
-  /**
    * Create a stable object directly, bypassing review requests.
    * @param data data to be saved
    */
