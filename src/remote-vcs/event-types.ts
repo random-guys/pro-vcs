@@ -60,29 +60,6 @@ export interface NewObjectEvent<T extends PayloadModel> {
   payload: T;
 }
 
-export interface NewBatchObjectEvent<T extends PayloadModel> {
-  /**
-   * event name
-   */
-  event_type: "create.new.batch";
-  /**
-   * the namespace of the repo
-   */
-  namespace: string;
-  /**
-   * object reference
-   */
-  reference: string;
-  /**
-   * initiator of the process
-   */
-  owner: string;
-  /**
-   * the new objects
-   */
-  payload: T[];
-}
-
 /**
  * Signifies that an update has happened on a pre-exisiting
  * stable object.

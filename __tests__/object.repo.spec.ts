@@ -51,20 +51,6 @@ describe("ProVCS Repo Constraints", () => {
     await cleanRepo(user.id);
   });
 
-  it("Should add multiple objects in create state", async () => {
-    await dataRepo.createBatch("arewaolakunle", [mockUser(), mockUser()]);
-    const readerUsers = await dataRepo.all("someone", {}, true);
-
-    // owner should see created
-    expect(readerUsers).toHaveLength(2);
-    // ensure no other user can see created
-    expect(readerUsers[0].object_state).toBe(ObjectState.Frozen);
-    expect(readerUsers[1].object_state).toBe(ObjectState.Frozen);
-
-    // cleanup afterwards
-    await dataRepo.internalRepo.model.deleteMany({}).exec();
-  });
-
   it("Should update a pending create", async () => {
     const user = await dataRepo.create("arewaolakunle", mockUser());
     const writeUser = await dataRepo.update("arewaolakunle", user.id, {
