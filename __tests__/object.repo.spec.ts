@@ -92,10 +92,11 @@ describe("ProVCS Repo Constraints", () => {
 
   it("Should create a new update", async () => {
     const user = await dataRepo.createApproved(mockUser());
-    const writeUser = await dataRepo.update("arewaolakunle", user.id, {
+    await dataRepo.update("arewaolakunle", user.id, {
       email_address: "nope@gmail.com"
     });
     const readerUser = await dataRepo.get("someone", user.id);
+    const writeUser = await dataRepo.get("arewaolakunle", user.id);
 
     // different strokes for the different folks
     expect(writeUser.email_address).toBe("nope@gmail.com");
