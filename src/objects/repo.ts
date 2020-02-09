@@ -267,7 +267,7 @@ export class ObjectRepository<T extends PayloadModel> {
     const data = await this.internalRepo.byID(reference);
     switch (data.object_state) {
       case ObjectState.Created:
-        return this.stabilise(data).then(asObject);
+        return this.stabilise(data, updates).then(asObject);
       case ObjectState.Updated:
         return this.internalRepo
           .atomicUpdate(
