@@ -64,7 +64,7 @@ export class RPCClient {
    * @param args arguments for the method.
    */
   async call<T, U>(namespace: string, method: string, args: T) {
-    return this.sendRequest(createRequest(namespace, method, args));
+    return this.sendRequest<T, U>(createRequest(namespace, method, args));
   }
 
   /**
