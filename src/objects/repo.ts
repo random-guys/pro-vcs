@@ -269,11 +269,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
         return this.stabilise(data, updates).then(asObject);
       case ObjectState.Updated:
-        return this.internalRepo
-          .atomicUpdate(
-            { _id: reference, object_state: ObjectState.Updated },
-            { $set: { ...data.__patch, ...updates } }
-          )
+        return await this.mergeUpdate(reference, updates)
           .then(asObject);
       case ObjectState.Deleted:
         return this.internalRepo
@@ -286,6 +282,28 @@ export class ObjectRepository<T extends PayloadModel> {
         throw new InvalidOperation("Cannot merge a stable object");
       default:
         throw new InconsistentState();
+    }
+  }
+
+  /**
+   * Stabilises updated object. Returns the newest state of the object
+   * @param reference ID of the object being stabilised
+   * @param updates optional updates to add when merging
+   */
+  async mergeUpdate(reference: string, updates?: object){
+    const data = await this.internalRepo.byID(reference)
+    if(data.object_state === ObjectState.Updated) {
+      return this.internalRepo.atomicUpdate(
+        { _id: data.id, object_state: data.object_state },
+        {
+          $set: {
+            ...updates,
+            object_state: ObjectState.Stable,
+            __owner: null,
+            __patch: null
+          }
+        }
+      )
     }
   }
 
