@@ -325,6 +325,7 @@ export class ObjectRepository<T extends PayloadModel> {
       {
         $set: {
           ...data.__patch,
+          ...updates,
           object_state: ObjectState.Stable,
           __owner: null,
           __patch: null
