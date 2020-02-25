@@ -286,28 +286,6 @@ export class ObjectRepository<T extends PayloadModel> {
   }
 
   /**
-   * Stabilises updated object. Returns the newest state of the object
-   * @param reference ID of the object being stabilised
-   * @param updates optional updates to add when merging
-   */
-  async mergeUpdate(reference: string, updates?: object){
-    const data = await this.internalRepo.byID(reference)
-    if(data.object_state === ObjectState.Updated) {
-      return this.internalRepo.atomicUpdate(
-        { _id: data.id, object_state: data.object_state },
-        {
-          $set: {
-            ...updates,
-            object_state: ObjectState.Stable,
-            __owner: null,
-            __patch: null
-          }
-        }
-      )
-    }
-  }
-
-  /**
    * Rolls back any unapproved changes on an object
    * @param reference ID of the object being normalized
    * @param updates optional updates to add when merging
@@ -346,9 +324,10 @@ export class ObjectRepository<T extends PayloadModel> {
       { _id: data.id, object_state: data.object_state },
       {
         $set: {
-          ...updates,
+          ...data.__patch,
           object_state: ObjectState.Stable,
-          __owner: null
+          __owner: null,
+          __patch: null
         }
       }
     );
