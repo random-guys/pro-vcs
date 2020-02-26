@@ -219,7 +219,8 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
   updateApproved(query: string | object, update: object, throwOnNull = true) {
-    return this.internalRepo.atomicUpdate(query, update, throwOnNull);
+    return this.internalRepo.atomicUpdate(query, update, throwOnNull).then(asObject)
+      ;
   }
 
   /**
@@ -254,7 +255,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
   deleteApproved(query: string | object, throwOnNull = true) {
-    return this.internalRepo.destroy(query, throwOnNull);
+    return this.internalRepo.destroy(query, throwOnNull).then(asObject);
   }
 
   /**
@@ -356,8 +357,8 @@ export class ObjectRepository<T extends PayloadModel> {
           data.object_state === ObjectState.Created
             ? cleanPartial
             : {
-                __patch: mongoSet(data.__patch, cleanPartial)
-              }
+              __patch: mongoSet(data.__patch, cleanPartial)
+            }
       }
     );
   }
