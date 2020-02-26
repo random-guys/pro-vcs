@@ -70,14 +70,11 @@ describe("ProVCS Repo Constraints", () => {
 
     const update = await dataRepo.update("tobslob", user.id, { fullname: "Odutola Oluwatobi" });
 
-    const stabiliseUser = await dataRepo.merge(update.id, {
-      email_address: "tobslob@mail.com"
-    });
+    await dataRepo.merge(update.id);
     const readUser = await dataRepo.get("someone", user.id);
 
-    expect(stabiliseUser.email_address).toBe("tobslob@mail.com");
-    expect(stabiliseUser.email_address).toBe(readUser.email_address);
-    expect(stabiliseUser.object_state).toBe(ObjectState.Stable);
+    expect(readUser.fullname).toBe(update.fullname);
+    expect(readUser.object_state).toBe(ObjectState.Stable);
 
     await cleanRepo(user.id);
   });
