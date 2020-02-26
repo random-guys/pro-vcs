@@ -65,6 +65,23 @@ describe("ProVCS Repo Constraints", () => {
     await cleanRepo(user.id);
   });
 
+  it("Should stabilise an update", async () => {
+    const user = await dataRepo.createApproved(mockUser("tobslob@mail.com"));
+
+    const update = await dataRepo.update("tobslob", user.id, { fullname: "Odutola Oluwatobi" });
+
+    const stabiliseUser = await dataRepo.merge(update.id, {
+      email_address: "tobslob@mail.com"
+    });
+    const readUser = await dataRepo.get("someone", user.id);
+
+    expect(stabiliseUser.email_address).toBe("tobslob@mail.com");
+    expect(stabiliseUser.email_address).toBe(readUser.email_address);
+    expect(stabiliseUser.object_state).toBe(ObjectState.Stable);
+
+    await cleanRepo(user.id);
+  });
+
   it("Should delete a pending create", async () => {
     const user = await dataRepo.create("arewaolakunle", mockUser());
     await dataRepo.delete("arewaolakunle", user.id);
