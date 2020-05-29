@@ -219,8 +219,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
   updateApproved(query: string | object, update: object, throwOnNull = true) {
-    return this.internalRepo.atomicUpdate(query, update, throwOnNull).then(asObject)
-      ;
+    return this.internalRepo.atomicUpdate(query, update, throwOnNull).then(asObject);
   }
 
   /**
