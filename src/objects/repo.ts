@@ -269,11 +269,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
         return this.stabilise(data, updates).then(asObject);
       case ObjectState.Updated:
-        return this.internalRepo
-          .atomicUpdate(
-            { _id: reference, object_state: ObjectState.Updated },
-            { $set: { ...data.__patch, ...updates } }
-          )
+        return await this.stabiliseUpdate(data, updates)
           .then(asObject);
       case ObjectState.Deleted:
         return this.internalRepo
@@ -323,6 +319,21 @@ export class ObjectRepository<T extends PayloadModel> {
     );
   }
 
+  protected stabiliseUpdate(data: ObjectModel<T>, updates?: object) {
+    return this.internalRepo.atomicUpdate(
+      { _id: data.id, object_state: data.object_state },
+      {
+        $set: {
+          ...data.__patch,
+          ...updates,
+          object_state: ObjectState.Stable,
+          __owner: null,
+          __patch: null
+        }
+      }
+    );
+  }
+
   protected inplaceUpdate(
     user: string,
     data: ObjectModel<T>,
@@ -345,8 +356,8 @@ export class ObjectRepository<T extends PayloadModel> {
           data.object_state === ObjectState.Created
             ? cleanPartial
             : {
-                __patch: mongoSet(data.__patch, cleanPartial)
-              }
+              __patch: mongoSet(data.__patch, cleanPartial)
+            }
       }
     );
   }
