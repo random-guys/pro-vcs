@@ -214,4 +214,20 @@ describe("ProVCS Repo Constraints", () => {
 
     await dataRepo.internalRepo.model.deleteMany({}).exec();
   });
+
+  it("should update an object and keep it in stable state", async () => {
+    const nok = await dataRepo.createApproved(mockUser("nok@ru.com"));
+    const nok2 = await dataRepo.updateApproved(nok.id, { email_address: "loo@tx.com" });
+
+    expect(nok.email_address).not.toBe(nok2.email_address);
+    expect(nok2.object_state).toBe(ObjectState.Stable);
+  });
+
+  it("should delete an object immediately", async () => {
+    const nok = await dataRepo.createApproved(mockUser("nok@ru.com"));
+    const nok2 = await dataRepo.deleteApproved(nok.id);
+
+    expect(dataRepo.get("everyone", nok.id)).rejects.toThrow("User not found");
+    expect(nok2.object_state).toBe(ObjectState.Stable);
+  });
 });
