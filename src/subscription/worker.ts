@@ -1,13 +1,9 @@
-import {
-  defaultMongoOpts,
-  MongooseNamespace,
-  secureMongoOpts
-} from "@random-guys/bucket";
+import { defaultMongoOpts, secureMongoOpts } from "@random-guys/bucket";
 import { subscriber } from "@random-guys/eventbus";
 import { ConsumeMessage } from "amqplib";
 import Logger, { createLogger } from "bunyan";
 import express, { Request, Response } from "express";
-import mongoose from "mongoose";
+import mongoose, { Connection as MongooseConnection } from "mongoose";
 import { Handler, SubscriptionConfig } from "./contract";
 
 /**
@@ -22,10 +18,7 @@ import { Handler, SubscriptionConfig } from "./contract";
  * can be used to startup and shutdown the worker. Note that it also
  * shuts down the worker on `CTRL-C` signal
  */
-export function withinWorker(
-  config: SubscriptionConfig,
-  registrar: (logger: Logger) => void
-): [Function, Function] {
+export function withinWorker(config: SubscriptionConfig, registrar: (logger: Logger) => void): [Function, Function] {
   const logger = createLogger({
     name: config.worker_name,
     serializers: {
@@ -33,7 +26,7 @@ export function withinWorker(
     }
   });
 
-  let mongooseCon: MongooseNamespace;
+  let conn: MongooseConnection;
   let httpServer: any;
 
   const start = async () => {
@@ -54,7 +47,7 @@ export function withinWorker(
     logger.info(`🌋 Health check running on port ${config.app_port}`);
 
     // connect to mongodb
-    mongooseCon = await mongoose.connect(
+    conn = await mongoose.createConnection(
       config.mongodb_url,
       config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
     );
@@ -76,9 +69,7 @@ export function withinWorker(
       logger.info(`Shutting down ${config.worker_name} worker`);
 
       await subscriber.close();
-
-      await mongooseCon.disconnect();
-
+      await conn.close();
       httpServer.close();
 
       // custom exit handler
@@ -86,10 +77,7 @@ export function withinWorker(
         await config.onStop(logger);
       }
     } catch (err) {
-      logger.error(
-        err,
-        `An error occured while stopping ${config.worker_name} worker`
-      );
+      logger.error(err, `An error occured while stopping ${config.worker_name} worker`);
       process.exit(1);
     }
   };

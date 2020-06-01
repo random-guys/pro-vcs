@@ -33,10 +33,8 @@ jobs:
       - image: rabbitmq:3.5.4
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - dependency-cache-{{checksum "package.json"}}
-            - dependency-cache-
+      - attach_workspace:
+          at: ./
       - run:
           name: Run tests
           command: yarn test
@@ -72,7 +70,6 @@ workflows:
           filters:
             branches:
               ignore:
-                - develop
                 - master
                 - release
       - test:
@@ -81,7 +78,6 @@ workflows:
           filters:
             branches:
               ignore:
-                - develop
                 - master
                 - release
       - deploy:
