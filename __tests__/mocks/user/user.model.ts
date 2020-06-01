@@ -1,6 +1,6 @@
 import { PayloadModel } from "../../../src/objects";
 
 export interface User extends PayloadModel {
-  fullname: string;
+  full_name: string;
   email_address: string;
 }

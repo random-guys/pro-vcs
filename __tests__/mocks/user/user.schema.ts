@@ -1,7 +1,14 @@
-import { SchemaDefinition } from 'mongoose';
-import { trimmedString } from '@random-guys/bucket';
+import { SchemaDefinition } from "mongoose";
+import { trimmedString } from "@random-guys/bucket";
+import { ObjectSchema } from "../../../src/objects/schema";
 
-export const UserSchema: SchemaDefinition = {
-  fullname: { ...trimmedString, required: true },
-  email_address: { ...trimmedString, required: true }
+const UserSchemaDef: SchemaDefinition = {
+  full_name: { ...trimmedString, required: true },
+  email_address: { ...trimmedString, required: true },
+  password_hash: { ...trimmedString }
 };
+
+export const UserSchema = ObjectSchema(UserSchemaDef, ["password_hash"]).index(
+  { email_address: 1, full_name: 1 },
+  { unique: true }
+);
