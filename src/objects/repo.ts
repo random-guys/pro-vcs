@@ -1,7 +1,6 @@
 import {
   BaseRepository,
   DuplicateModelError,
-  MongooseNamespace,
   PaginationQuery,
   PaginationQueryResult,
   Query
@@ -9,7 +8,7 @@ import {
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 import startCase from "lodash/startCase";
-import { SchemaDefinition } from "mongoose";
+import { Connection as MongooseConnection, SchemaDefinition, Schema } from "mongoose";
 import { mongoSet } from "../object";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
@@ -46,23 +45,22 @@ export class ObjectRepository<T extends PayloadModel> {
 
   /**
    * This creates an event repository
-   * @param mongoose This will ensure the same connection is shared
+   * @param conn This will ensure the same connection is shared
    * @param name name of the repo. Note that this will become kebab case in
    * Mongo DB
-   * @param schema Mongoose schema for the repo.
+   * @param schema ObjectSchema or Mongoose SchemaDefinition for the repo.
    * @param exclude properties to exclude from the serialized payload e.g. password
    */
+
+  constructor(conn: MongooseConnection, name: string, schema: ObjectSchema<T>);
   constructor(
-    mongoose: MongooseNamespace,
+    conn: MongooseConnection,
     name: string,
-    schema: SchemaDefinition,
+    schema: SchemaDefinition | ObjectSchema<T>,
     exclude: string[] = []
   ) {
-    this.internalRepo = new BaseRepository(
-      mongoose,
-      name,
-      ObjectSchema(schema, exclude)
-    );
+    const mongooseSchema = schema instanceof ObjectSchema ? schema : new ObjectSchema(schema, exclude);
+    this.internalRepo = new BaseRepository(conn, name, mongooseSchema.schema);
     this.name = this.internalRepo.name;
     this.client = new RemoteClient(this);
   }
@@ -76,12 +74,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param merger implementation of the merger
    * @param logger logger to help track requests to the merger
    */
-  initClient(
-    remoteQueue: string,
-    connection: Connection,
-    merger: RemoteObject<T>,
-    logger: Logger
-  ) {
+  initClient(remoteQueue: string, connection: Connection, merger: RemoteObject<T>, logger: Logger) {
     return this.client.init(remoteQueue, connection, merger, logger);
   }
 
@@ -115,9 +108,7 @@ export class ObjectRepository<T extends PayloadModel> {
   async assertExists(query: object): Promise<void> {
     const element = await this.internalRepo.byQuery(query, null, false);
     if (element) {
-      throw new DuplicateModelError(
-        `The ${startCase(this.internalRepo.name)} already exists`
-      );
+      throw new DuplicateModelError(`The ${startCase(this.internalRepo.name)} already exists`);
     }
   }
 
@@ -140,9 +131,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param fresh allow mongodb return unstable objects. `false` by default
    */
   async byQuery(user: string, query: object, fresh = false): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery(
-      this.allowNew(query, fresh)
-    );
+    const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh));
     return this.markup(user, maybePending, fresh);
   }
 
@@ -165,11 +154,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param query mongo query to use for search
    * @param fresh allow mongodb return unstable objects. `false` by default
    */
-  async list(
-    user: string,
-    query: PaginationQuery,
-    fresh = false
-  ): Promise<PaginationQueryResult<T>> {
+  async list(user: string, query: PaginationQuery, fresh = false): Promise<PaginationQueryResult<T>> {
     query.conditions = this.allowNew(query.conditions, fresh);
     const paginatedResults = await this.internalRepo.list(query);
     return {
@@ -185,11 +170,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param query MongoDB query object or id string
    * @param update updates to be made
    */
-  async update(
-    user: string,
-    query: string | object,
-    update: Partial<T>
-  ): Promise<T> {
+  async update(user: string, query: string | object, update: Partial<T>): Promise<T> {
     const parsedQuery = this.internalRepo.getQuery(query);
     const data = await this.internalRepo.byQuery(parsedQuery);
 
@@ -200,9 +181,7 @@ export class ObjectRepository<T extends PayloadModel> {
         await this.client.patch(data.id, freshData);
         return this.markup(user, freshData, true);
       case ObjectState.Deleted:
-        throw new InvalidOperation(
-          "Can't update an item up that is to be deleted"
-        );
+        throw new InvalidOperation("Can't update an item up that is to be deleted");
       case ObjectState.Stable:
         const newUpdate = await this.newUpdate(user, data, update);
         await this.client.updateObjectEvent(newUpdate, update);
@@ -219,7 +198,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
   updateApproved(query: string | object, update: object, throwOnNull = true) {
-    return this.internalRepo.atomicUpdate(query, update, throwOnNull);
+    return this.internalRepo.atomicUpdate(query, update, throwOnNull).then(asObject);
   }
 
   /**
@@ -254,7 +233,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
   deleteApproved(query: string | object, throwOnNull = true) {
-    return this.internalRepo.destroy(query, throwOnNull);
+    return this.internalRepo.destroy(query, throwOnNull).then(asObject);
   }
 
   /**
@@ -269,8 +248,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
         return this.stabilise(data, updates).then(asObject);
       case ObjectState.Updated:
-        return await this.stabiliseUpdate(data, updates)
-          .then(asObject);
+        return await this.stabiliseUpdate(data, updates).then(asObject);
       case ObjectState.Deleted:
         return this.internalRepo
           .destroy({
@@ -334,15 +312,9 @@ export class ObjectRepository<T extends PayloadModel> {
     );
   }
 
-  protected inplaceUpdate(
-    user: string,
-    data: ObjectModel<T>,
-    partial: Partial<T>
-  ) {
+  protected inplaceUpdate(user: string, data: ObjectModel<T>, partial: Partial<T>) {
     if (data.__owner !== user) {
-      throw new InvalidOperation(
-        `Can't update an unapproved ${startCase(this.internalRepo.name)}`
-      );
+      throw new InvalidOperation(`Can't update an unapproved ${startCase(this.internalRepo.name)}`);
     }
     const { object_state, ...cleanPartial } = partial;
 
@@ -364,9 +336,7 @@ export class ObjectRepository<T extends PayloadModel> {
 
   protected inplaceDelete(user: string, data: ObjectModel<T>) {
     if (data.__owner !== user) {
-      throw new InvalidOperation(
-        `Can't update an unapproved ${startCase(this.internalRepo.name)}`
-      );
+      throw new InvalidOperation(`Can't update an unapproved ${startCase(this.internalRepo.name)}`);
     }
 
     if (data.object_state === ObjectState.Created) {
