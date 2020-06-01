@@ -8,7 +8,5 @@ const UserSchemaDef: SchemaDefinition = {
   password_hash: { ...trimmedString }
 };
 
-export const UserSchema = ObjectSchema(UserSchemaDef, ["password_hash"]).index(
-  { email_address: 1, full_name: 1 },
-  { unique: true }
-);
+export const UserSchema = new ObjectSchema(UserSchemaDef, ["password_hash"]);
+UserSchema.schema.index({ email_address: 1, full_name: 1 }, { unique: true });

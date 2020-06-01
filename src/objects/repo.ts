@@ -48,11 +48,19 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param conn This will ensure the same connection is shared
    * @param name name of the repo. Note that this will become kebab case in
    * Mongo DB
-   * @param schema Mongoose schema for the repo.
+   * @param schema ObjectSchema or Mongoose SchemaDefinition for the repo.
    * @param exclude properties to exclude from the serialized payload e.g. password
    */
-  constructor(conn: MongooseConnection, name: string, schema: SchemaDefinition, exclude: string[] = []) {
-    this.internalRepo = new BaseRepository(conn, name, ObjectSchema(schema, exclude));
+
+  constructor(conn: MongooseConnection, name: string, schema: ObjectSchema<T>);
+  constructor(
+    conn: MongooseConnection,
+    name: string,
+    schema: SchemaDefinition | ObjectSchema<T>,
+    exclude: string[] = []
+  ) {
+    const mongooseSchema = schema instanceof ObjectSchema ? schema : new ObjectSchema(schema, exclude);
+    this.internalRepo = new BaseRepository(conn, name, mongooseSchema.schema);
     this.name = this.internalRepo.name;
     this.client = new RemoteClient(this);
   }

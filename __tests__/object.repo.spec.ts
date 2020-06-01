@@ -2,12 +2,11 @@ import { defaultMongoOpts } from "@random-guys/bucket";
 import { publisher } from "@random-guys/eventbus";
 import { createLogger } from "bunyan";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
+import faker from "faker";
+import mongoose, { Connection } from "mongoose";
+import { ObjectRepository, ObjectState } from "../src";
 import { mockUser, User, UserSchema } from "./mocks/user";
 import { UserMerger } from "./mocks/user/user.merger";
-import { ObjectRepository, ObjectState } from "../src";
-import { Connection } from "mongoose";
-import faker from "faker";
 
 describe("ProVCS Repo Constraints", () => {
   let conn: Connection;

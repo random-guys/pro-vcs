@@ -1,6 +1,6 @@
 import { BaseRepository, defaultMongoOpts } from "@random-guys/bucket";
 import mongoose, { Connection } from "mongoose";
-import { ObjectModel, ObjectSchema, ObjectState } from "../src";
+import { ObjectModel, ObjectState } from "../src";
 import { mockEmptyUserEvent, User, UserSchema } from "./mocks/user";
 
 describe("Event Schema Rules", () => {
@@ -9,7 +9,7 @@ describe("Event Schema Rules", () => {
 
   beforeAll(async () => {
     conn = await mongoose.createConnection("mongodb://localhost:27017/sterlingpro-test", defaultMongoOpts);
-    dataRepo = new BaseRepository(conn, "TestDB", UserSchema);
+    dataRepo = new BaseRepository(conn, "TestDB", UserSchema.schema);
   });
 
   afterAll(async () => {
