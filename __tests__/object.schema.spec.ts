@@ -1,6 +1,6 @@
 import { BaseRepository, defaultMongoOpts } from "@random-guys/bucket";
 import mongoose, { Connection } from "mongoose";
-import { ObjectModel, ObjectSchema, ObjectState } from "../src";
+import { ObjectModel, ObjectState } from "../src";
 import { mockEmptyUserEvent, User, UserSchema } from "./mocks/user";
 
 describe("Event Schema Rules", () => {
@@ -9,13 +9,15 @@ describe("Event Schema Rules", () => {
 
   beforeAll(async () => {
     conn = await mongoose.createConnection("mongodb://localhost:27017/sterlingpro-test", defaultMongoOpts);
-    dataRepo = new BaseRepository(conn, "TestDB", UserSchema);
+    dataRepo = new BaseRepository(conn, "TestDB", UserSchema.schema);
   });
 
   afterAll(async () => {
-    // clean up
-    await conn.dropDatabase();
     await conn.close();
+  });
+
+  afterEach(async () => {
+    await conn.dropDatabase();
   });
 
   it("Should remove __owner and __payload for toObject", async () => {
@@ -25,9 +27,6 @@ describe("Event Schema Rules", () => {
     expect(userObject.object_state).toBe(ObjectState.Created);
     expect(userObject.__patch).toBeUndefined();
     expect(userObject.__owner).toBeUndefined();
-
-    // cleanup afterwards
-    await user.remove();
   });
 
   it("Should remove __owner and __payload for toJSON", async () => {
@@ -37,8 +36,12 @@ describe("Event Schema Rules", () => {
     expect(userObject.object_state).toBe(ObjectState.Created);
     expect(userObject.__patch).toBeUndefined();
     expect(userObject.__owner).toBeUndefined();
+  });
 
-    // cleanup afterwards
-    await user.remove();
+  it("should prevent creating duplicate objects based on the indexes", async () => {
+    const dto = mockEmptyUserEvent();
+    await dataRepo.create(dto);
+
+    await expect(dataRepo.create(dto)).rejects.toThrow(/User already exists/);
   });
 });

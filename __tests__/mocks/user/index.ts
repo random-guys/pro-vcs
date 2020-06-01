@@ -7,6 +7,7 @@ export function mockEmptyUserEvent() {
   return {
     __owner: faker.random.uuid(),
     object_state: ObjectState.Created,
+    password_hash: faker.random.alphaNumeric(32),
     ...mockUser()
   };
 }
