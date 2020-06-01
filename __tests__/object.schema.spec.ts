@@ -9,7 +9,7 @@ describe("Event Schema Rules", () => {
 
   beforeAll(async () => {
     conn = await mongoose.createConnection("mongodb://localhost:27017/sterlingpro-test", defaultMongoOpts);
-    dataRepo = new BaseRepository(conn, "TestDB", UserSchema.schema);
+    dataRepo = new BaseRepository(conn, "User", UserSchema.schema);
   });
 
   afterAll(async () => {
@@ -17,7 +17,7 @@ describe("Event Schema Rules", () => {
   });
 
   afterEach(async () => {
-    await conn.dropDatabase();
+    await conn.models.User.deleteMany({});
   });
 
   it("Should remove __owner and __payload for toObject", async () => {
@@ -42,6 +42,6 @@ describe("Event Schema Rules", () => {
     const dto = mockEmptyUserEvent();
     await dataRepo.create(dto);
 
-    await expect(dataRepo.create(dto)).rejects.toThrow(/User already exists/);
+    await expect(dataRepo.create(dto)).rejects.toThrow(/User exists already/);
   });
 });

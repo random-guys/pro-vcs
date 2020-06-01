@@ -20,7 +20,7 @@ describe("ProVCS Repo Constraints", () => {
     await publisher.init(process.env.AMQP_URL);
     dataRepo = new ObjectRepository(conn, "User", UserSchema);
     await dataRepo.initClient("PROHUB_QUEUE", publisher.getConnection(), new UserMerger(), logger);
-  });
+  }, 5000);
 
   afterAll(async () => {
     await conn.close();
