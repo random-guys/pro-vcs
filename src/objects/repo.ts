@@ -53,6 +53,7 @@ export class ObjectRepository<T extends PayloadModel> {
    */
 
   constructor(conn: MongooseConnection, name: string, schema: ObjectSchema<T>);
+  constructor(conn: MongooseConnection, name: string, schema: SchemaDefinition, exclude: string[]);
   constructor(
     conn: MongooseConnection,
     name: string,
