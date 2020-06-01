@@ -23,13 +23,9 @@ beforeAll(async () => {
 
 describe("RPC Communication", () => {
   it("should create a predictable queue name", async done => {
-    const queue1 = await server.addMethod("beforeAll", x => {
-      return null;
-    });
+    const queue1 = await server.addMethod("beforeAll", x => null);
 
-    const queue2 = await server.addMethod("Before All", x => {
-      return null;
-    });
+    const queue2 = await server.addMethod("Before All", x => null);
 
     expect(queue1).toBe("TEST_BEFORE_ALL");
     expect(queue2).toBe("TEST_BEFORE_ALL");
