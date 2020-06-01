@@ -131,9 +131,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param fresh allow mongodb return unstable objects. `false` by default
    */
   async byQuery(user: string, query: object, fresh = false): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery(
-      this.allowNew(query, fresh)
-    );
+    const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh));
     return this.markup(user, maybePending, fresh);
   }
 
@@ -250,8 +248,7 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
         return this.stabilise(data, updates).then(asObject);
       case ObjectState.Updated:
-        return await this.stabiliseUpdate(data, updates)
-          .then(asObject);
+        return await this.stabilise(data, updates).then(asObject);
       case ObjectState.Deleted:
         return this.internalRepo
           .destroy({
@@ -316,8 +313,8 @@ export class ObjectRepository<T extends PayloadModel> {
           data.object_state === ObjectState.Created
             ? cleanPartial
             : {
-              __patch: mongoSet(data.__patch, cleanPartial)
-            }
+                __patch: mongoSet(data.__patch, cleanPartial)
+              }
       }
     );
   }
