@@ -134,9 +134,13 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
    * @param fresh allow mongodb return unstable objects. `false` by default
+   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
   async byQuery(user: string, query: object, fresh = false, throwOrNull = true): Promise<T> {
     const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh), null, throwOrNull);
+
+    if (!maybePending) return null;
+
     return this.markup(user, maybePending, fresh);
   }
 
