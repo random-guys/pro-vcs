@@ -27,6 +27,7 @@ describe("Event Schema Rules", () => {
     expect(userObject.object_state).toBe(ObjectState.Created);
     expect(userObject.__patch).toBeUndefined();
     expect(userObject.__owner).toBeUndefined();
+    expect(userObject.password_hash).toBeDefined();
   });
 
   it("Should remove __owner and __payload for toJSON", async () => {
@@ -36,6 +37,7 @@ describe("Event Schema Rules", () => {
     expect(userObject.object_state).toBe(ObjectState.Created);
     expect(userObject.__patch).toBeUndefined();
     expect(userObject.__owner).toBeUndefined();
+    expect(userObject.password_hash).toBeUndefined();
   });
 
   it("should prevent creating duplicate objects based on the indexes", async () => {

@@ -51,7 +51,7 @@ describe("ProVCS Repo Constraints", () => {
     expect(writeUser.email_address).toBe(readerUser.email_address);
   });
 
-  it.only("Should stabilise an update on merge", async () => {
+  it("Should stabilise an update on merge", async () => {
     const name = faker.name.findName();
     const dto = mockUser(faker.internet.email());
 
