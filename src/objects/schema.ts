@@ -1,13 +1,8 @@
-import {
-  timestamps,
-  trimmedLowercaseString,
-  trimmedString,
-  uuid
-} from "@random-guys/bucket";
+import { timestamps, trimmedLowercaseString, trimmedString, uuid } from "@random-guys/bucket";
+import values from "lodash/values";
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from "mongoose";
 import { mapperConfig } from "../schema";
 import { ObjectModel, ObjectState, PayloadModel } from "./model";
-import values from "lodash/values";
 
 const MetadateSchema: SchemaDefinition = {
   __owner: { ...trimmedString, index: true },
@@ -20,35 +15,35 @@ const MetadateSchema: SchemaDefinition = {
 };
 
 /**
- * `EventSchema` creates a mongoose schema that can store an `EventModel`. This is the where
+ * `ObjectSchema` creates a mongoose schema that can store an `EventModel`. This is the where
  * the implementation of `toObject`,`toJSON` and `asObject` is created.
  * @param payloadSchema schema of the wrapped `PayloadModel`
- * @param exclude properties to exclude when export using `asObject` or `toJSON`
+ * @param exclude properties to exclude from the result of toJSON
  * @param options other schema options
  */
-export const ObjectSchema = <T extends PayloadModel>(
-  payloadSchema: SchemaDefinition,
-  exclude: string[] = [],
-  options?: SchemaOptions
-) => {
-  // make sure to remove any trace of metadata
-  exclude.push("__owner", "__patch");
-  const mapper = mapperConfig<ObjectModel<T>>(exclude);
+export class ObjectSchema<T extends PayloadModel> {
+  /**
+   * the schema created by `ObjectSchema` and to be used by mongoose
+   */
+  readonly schema: Schema;
+  constructor(payloadSchema: SchemaDefinition, exclude: string[] = [], options?: SchemaOptions) {
+    // make sure to remove any trace of metadata
+    const objectMapper = mapperConfig(["__owner", "__patch"]);
+    const jsonMapper = mapperConfig<ObjectModel<T>>(["__owner", "__patch", ...exclude]);
 
-  const schema = new Schema(
-    {
-      _id: uuid,
-      ...MetadateSchema,
-      ...payloadSchema
-    },
-    {
-      ...options,
-      ...timestamps,
-      toJSON: mapper,
-      toObject: mapper,
-      selectPopulatedPaths: false
-    }
-  );
-
-  return schema;
-};
+    this.schema = new Schema(
+      {
+        _id: uuid,
+        ...MetadateSchema,
+        ...payloadSchema
+      },
+      {
+        ...options,
+        ...timestamps,
+        toJSON: jsonMapper,
+        toObject: objectMapper,
+        selectPopulatedPaths: false
+      }
+    );
+  }
+}
