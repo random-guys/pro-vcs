@@ -1,28 +1,21 @@
-import {
-  BaseRepository,
-  defaultMongoOpts,
-  MongooseNamespace
-} from "@random-guys/bucket";
-import mongoose from "mongoose";
-import { mockEmptyUserEvent, User, UserSchema } from "./mocks/user";
+import { BaseRepository, defaultMongoOpts } from "@random-guys/bucket";
+import mongoose, { Connection } from "mongoose";
 import { ObjectModel, ObjectSchema, ObjectState } from "../src";
+import { mockEmptyUserEvent, User, UserSchema } from "./mocks/user";
 
 describe("Event Schema Rules", () => {
-  let mongooseNs: MongooseNamespace;
+  let conn: Connection;
   let dataRepo: BaseRepository<ObjectModel<User>>;
 
   beforeAll(async () => {
-    mongooseNs = await mongoose.connect(
-      "mongodb://localhost:27017/sterlingpro-test",
-      defaultMongoOpts
-    );
-    dataRepo = new BaseRepository(mongoose, "TestDB", ObjectSchema(UserSchema));
+    conn = await mongoose.createConnection("mongodb://localhost:27017/sterlingpro-test", defaultMongoOpts);
+    dataRepo = new BaseRepository(conn, "TestDB", UserSchema);
   });
 
   afterAll(async () => {
     // clean up
-    await mongooseNs.connection.dropDatabase();
-    await mongooseNs.disconnect();
+    await conn.dropDatabase();
+    await conn.close();
   });
 
   it("Should remove __owner and __payload for toObject", async () => {

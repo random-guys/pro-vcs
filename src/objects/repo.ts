@@ -8,7 +8,7 @@ import {
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 import startCase from "lodash/startCase";
-import { Connection as MongooseConnection, SchemaDefinition } from "mongoose";
+import { Connection as MongooseConnection, SchemaDefinition, Schema } from "mongoose";
 import { mongoSet } from "../object";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";

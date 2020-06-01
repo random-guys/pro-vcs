@@ -1,4 +1,4 @@
-import { defaultMongoOpts, MongooseNamespace } from "@random-guys/bucket";
+import { defaultMongoOpts } from "@random-guys/bucket";
 import { publisher } from "@random-guys/eventbus";
 import { createLogger } from "bunyan";
 import dotenv from "dotenv";
@@ -6,37 +6,30 @@ import mongoose from "mongoose";
 import { mockUser, User, UserSchema } from "./mocks/user";
 import { UserMerger } from "./mocks/user/user.merger";
 import { ObjectRepository, ObjectState } from "../src";
+import { Connection } from "mongoose";
+import faker from "faker";
 
 describe("ProVCS Repo Constraints", () => {
-  let mongooseNs: MongooseNamespace;
+  let conn: Connection;
   let dataRepo: ObjectRepository<User>;
 
   beforeAll(async () => {
     dotenv.config();
-    mongooseNs = await mongoose.connect(
-      process.env.MONGODB_URL,
-      defaultMongoOpts
-    );
+    conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
     const logger = createLogger({ name: "user" });
     await publisher.init(process.env.AMQP_URL);
-    dataRepo = new ObjectRepository(mongooseNs, "User", UserSchema);
-    await dataRepo.initClient(
-      "PROHUB_QUEUE",
-      publisher.getConnection(),
-      new UserMerger(),
-      logger
-    );
+    dataRepo = new ObjectRepository(conn, "User", UserSchema);
+    await dataRepo.initClient("PROHUB_QUEUE", publisher.getConnection(), new UserMerger(), logger);
   });
 
   afterAll(async () => {
-    // clean up
-    await mongooseNs.connection.dropDatabase();
-    await mongooseNs.disconnect();
+    await conn.close();
   });
 
-  function cleanRepo(reference: string) {
-    return dataRepo.internalRepo.destroy(reference, false);
-  }
+  afterEach(async () => {
+    // clean up
+    await conn.dropDatabase();
+  });
 
   it("Should add create metadata to a new event", async () => {
     const user = await dataRepo.create("arewaolakunle", mockUser());
