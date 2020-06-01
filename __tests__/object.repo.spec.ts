@@ -157,6 +157,13 @@ describe("ProVCS Repo Constraints", () => {
     expect(loadedUser.id).toBe(user.id);
   });
 
+  it("Should return the an approved user", async () => {
+    const user = await dataRepo.create("jose", mockUser());
+    const loadedUser = await dataRepo.byQuery("arewaolakunle", { full_name: user.full_name }, false, false);
+
+    expect(loadedUser).toBeNull();
+  });
+
   it("Should return the all approved users", async () => {
     const email = faker.internet.email();
 

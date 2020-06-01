@@ -97,12 +97,17 @@ export class ObjectRepository<T extends PayloadModel> {
    * Create a stable object directly, bypassing review requests.
    * @param data data to be saved
    */
-  async createApproved(data: Partial<T>): Promise<T> {
-    const newObject = await this.internalRepo.create({
-      object_state: ObjectState.Stable,
-      ...data
-    });
-    return newObject.toObject();
+  async createApproved(data: Partial<T>): Promise<T>;
+  async createApproved(data: Partial<T>[]): Promise<T[]>;
+  async createApproved(data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
+    if (Array.isArray(data)) {
+      const payloads: Partial<T>[] = data.map(x => ({ object_state: ObjectState.Stable, ...x }));
+      // @ts-ignore bad typescript
+      const objects: ObjectModel<T>[] = await this.internalRepo.create(payloads);
+      return objects.map(asObject);
+    } else {
+      return this.internalRepo.create({ ...data, object_state: ObjectState.Stable });
+    }
   }
 
   async assertExists(query: object): Promise<void> {
@@ -129,9 +134,13 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
    * @param fresh allow mongodb return unstable objects. `false` by default
+   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
-  async byQuery(user: string, query: object, fresh = false): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh));
+  async byQuery(user: string, query: object, fresh = false, throwOrNull = true): Promise<T> {
+    const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh), null, throwOrNull);
+
+    if (!maybePending) return null;
+
     return this.markup(user, maybePending, fresh);
   }
 

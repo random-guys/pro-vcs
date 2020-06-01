@@ -35,5 +35,4 @@ export interface ObjectModel<T extends PayloadModel> extends Model {
  * `asObject` extracts the raw payload from an `EventModel`
  * @param x the event model to convert
  */
-export const asObject = <T extends PayloadModel>(x: ObjectModel<T>): T =>
-  x.toObject();
+export const asObject = <T extends PayloadModel>(x: ObjectModel<T>): T => x ?? x.toObject();
