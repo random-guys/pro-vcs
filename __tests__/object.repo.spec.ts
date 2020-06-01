@@ -51,6 +51,20 @@ describe("ProVCS Repo Constraints", () => {
     expect(writeUser.email_address).toBe(readerUser.email_address);
   });
 
+  it("Should stabilise an update", async () => {
+    const user = await dataRepo.createApproved(mockUser("tobslob@mail.com"));
+
+    const update = await dataRepo.update("tobslob", user.id, { fullname: "Odutola Oluwatobi" });
+
+    await dataRepo.merge(update.id);
+    const readUser = await dataRepo.get("someone", user.id);
+
+    expect(readUser.fullname).toBe(update.fullname);
+    expect(readUser.object_state).toBe(ObjectState.Stable);
+
+    await cleanRepo(user.id);
+  });
+
   it("Should delete a pending create", async () => {
     const user = await dataRepo.create("arewaolakunle", mockUser());
     await dataRepo.delete("arewaolakunle", user.id);
@@ -185,5 +199,21 @@ describe("ProVCS Repo Constraints", () => {
     expect(chudiQueried.length).toBe(1);
     expect(chudiQueried[0].object_state).toBe(ObjectState.Updated);
     expect(chudiQueried[0].email_address).toBe(secondMail);
+  });
+
+  it("should update an object and keep it in stable state", async () => {
+    const nok = await dataRepo.createApproved(mockUser("nok@ru.com"));
+    const nok2 = await dataRepo.updateApproved(nok.id, { email_address: "loo@tx.com" });
+
+    expect(nok.email_address).not.toBe(nok2.email_address);
+    expect(nok2.object_state).toBe(ObjectState.Stable);
+  });
+
+  it("should delete an object immediately", async () => {
+    const nok = await dataRepo.createApproved(mockUser("nok@ru.com"));
+    const nok2 = await dataRepo.deleteApproved(nok.id);
+
+    expect(dataRepo.get("everyone", nok.id)).rejects.toThrow("User not found");
+    expect(nok2.object_state).toBe(ObjectState.Stable);
   });
 });
