@@ -17,7 +17,7 @@ describe("Event Schema Rules", () => {
   });
 
   afterEach(async () => {
-    await conn.models.User.deleteMany({});
+    await dataRepo.truncate({});
   });
 
   it("Should remove __owner and __payload for toObject", async () => {
