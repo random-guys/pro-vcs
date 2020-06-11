@@ -225,4 +225,17 @@ describe("ProVCS Repo Constraints", () => {
     expect(dataRepo.get("everyone", nok.id)).rejects.toThrow("User not found");
     expect(nok2.object_state).toBe(ObjectState.Stable);
   });
+
+  it("should delete all objects immediately", async () => {
+    await dataRepo.createApproved(mockUser());
+    await dataRepo.createApproved(mockUser());
+    await dataRepo.createApproved(mockUser());
+    const users = await dataRepo.all("everyone", {});
+
+    await dataRepo.truncate({});
+    const noUsers = await dataRepo.all("everyone", {});
+
+    expect(users.length).not.toBe(noUsers.length);
+    expect(noUsers).toHaveLength(0);
+  });
 });
