@@ -247,6 +247,14 @@ export class ObjectRepository<T extends PayloadModel> {
   }
 
   /**
+   * Permanently delete multiple documents document without the approval process.
+   * @param query MongoDB query object
+   */
+  truncate(query: object) {
+    return this.internalRepo.truncate(query);
+  }
+
+  /**
    * Stabilises an object based on its state. Returns the newest state
    * of the object
    * @param reference ID of the object being stabilised
