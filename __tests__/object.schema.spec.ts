@@ -30,6 +30,15 @@ describe("Event Schema Rules", () => {
     expect(userObject.password_hash).toBeDefined();
   });
 
+  it("Should add toJSON to the result of toObject", async () => {
+    const user = await dataRepo.create(mockEmptyUserEvent());
+    const userObject = user.toObject();
+    const userJSON = userObject.toJSON();
+
+    expect(userObject.password_hash).toBeDefined();
+    expect(userJSON.password_hash).toBeUndefined();
+  });
+
   it("Should remove __owner and __payload for toJSON", async () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
     const userObject = user.toJSON();

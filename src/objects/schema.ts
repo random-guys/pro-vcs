@@ -1,4 +1,5 @@
 import { timestamps, trimmedLowercaseString, trimmedString, uuid } from "@random-guys/bucket";
+import { unset } from "lodash";
 import values from "lodash/values";
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from "mongoose";
 import { mapperConfig } from "../schema";
@@ -27,8 +28,19 @@ export class ObjectSchema<T extends PayloadModel> {
    */
   readonly schema: Schema;
   constructor(payloadSchema: SchemaDefinition, exclude: string[] = [], options?: SchemaOptions) {
-    // make sure to remove any trace of metadata
-    const objectMapper = mapperConfig(["__owner", "__patch"]);
+    // remove metadata, but add toJSON to remove excluded properties
+    const objectMapper = mapperConfig(["__owner", "__patch"], (data: T) => {
+      data["toJSON"] = () => {
+        exclude.forEach(path => {
+          unset(data, path);
+        });
+
+        return { ...data };
+      };
+      return data;
+    });
+
+    // remove metadata and excluded properties
     const jsonMapper = mapperConfig<ObjectModel<T>>(["__owner", "__patch", ...exclude]);
 
     this.schema = new Schema(
