@@ -13,7 +13,7 @@ export function mapperConfig<T>(exclude: string[], preCleanup?: (data: T) => any
       exclude.forEach(path => {
         unset(data, path);
       });
-      return data;
+      return { ...data };
     }
   };
 }

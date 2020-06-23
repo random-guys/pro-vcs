@@ -19,6 +19,7 @@ export interface PayloadModel {
   deleted_at: Date;
   updated_at: Date;
   object_state: ObjectState;
+  toJSON(): any;
 }
 
 /**
