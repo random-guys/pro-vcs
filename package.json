@@ -1,6 +1,6 @@
 {
   "name": "@random-guys/pro-vcs",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "Repo for implementing review requests",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
