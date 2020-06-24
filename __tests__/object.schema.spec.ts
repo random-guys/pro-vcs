@@ -39,6 +39,17 @@ describe("Event Schema Rules", () => {
     expect(userJSON.password_hash).toBeUndefined();
   });
 
+  it("Spreading should not remove new properties", async () => {
+    const user = await dataRepo.create(mockEmptyUserEvent());
+    const userObject = user.toObject();
+    const wrapper = { money: "dollars", cash: "flow", ...userObject };
+    const wrapperJSON = wrapper.toJSON();
+
+    expect(wrapperJSON.password_hash).toBeUndefined();
+    expect(wrapperJSON.money).toBeDefined();
+    expect(wrapperJSON.cash).toBeDefined();
+  });
+
   it("Should remove __owner and __payload for toJSON", async () => {
     const user = await dataRepo.create(mockEmptyUserEvent());
     const userObject = user.toJSON();
