@@ -31,11 +31,12 @@ export class ObjectSchema<T extends PayloadModel> {
     // remove metadata, but add toJSON to remove excluded properties
     const objectMapper = mapperConfig(["__owner", "__patch"], (data: T) => {
       data["toJSON"] = function () {
+        const copy = { ...this };
         exclude.forEach(path => {
-          unset(this, path);
+          unset(copy, path);
         });
 
-        return { ...this };
+        return copy;
       };
       return data;
     });
