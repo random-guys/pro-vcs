@@ -25,7 +25,7 @@ export type EventRegistrar = (event: string, handler: (log: Logger) => Promise<v
  */
 export function worker(
   name: string,
-  port: string,
+  port: number,
   subConn: Connection,
   registrar: (logger: Logger) => Promise<void>
 ): [Runner, EventRegistrar] {
@@ -40,7 +40,7 @@ export function worker(
 
   let httpServer: any;
 
-  const runner = (command: string) => {
+  const runner = async (command: string) => {
     switch (command) {
       case "start":
         // ensure to link it with provider immediately
@@ -57,14 +57,14 @@ export function worker(
         httpServer = healthApp.listen(port);
         logger.info(`🌋 Health check running on port ${port}`);
 
-        events.emitSync("start");
+        await events.emitSync("start");
 
         return registrar(logger);
       case "stop":
         logger.info(`Shutting down ${name} worker`);
         httpServer.close();
 
-        events.emitSync("stop");
+        await events.emitSync("stop");
 
         process.exit(1);
       default:
