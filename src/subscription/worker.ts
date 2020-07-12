@@ -1,92 +1,90 @@
-import { defaultMongoOpts, secureMongoOpts } from "@random-guys/bucket";
 import { subscriber } from "@random-guys/eventbus";
-import { ConsumeMessage } from "amqplib";
+import { Connection, ConsumeMessage } from "amqplib";
 import Logger, { createLogger } from "bunyan";
+import { EventEmitter } from "events";
 import express, { Request, Response } from "express";
-import mongoose, { Connection as MongooseConnection } from "mongoose";
-import { Handler, SubscriptionConfig } from "./contract";
+import { AsyncEmitter } from "./emitter";
 
 /**
- * Create start and stop functions for a worker, setting up the
- * DB and other related resources needed by subcribers or producers
- * in the worker.
- * @param config contains all configurations for resources and possible
- * resource setup and teardown operations
- * @param registrar sets up consumers/subscriptions after resouces have
- * been setup
- * @returns {[Function, Function]} async start and stop functions that
- * can be used to startup and shutdown the worker. Note that it also
- * shuts down the worker on `CTRL-C` signal
+ * Defines what an event handler is expected to look like.
  */
-export function withinWorker(config: SubscriptionConfig, registrar: (logger: Logger) => void): [Function, Function] {
+export interface Handler<T> {
+  (data: T, logger: Logger): Promise<void>;
+}
+export type Runner = (command: "start" | "stop") => Promise<void>;
+export type EventRegistrar = (event: string, handler: (log: Logger) => Promise<void>) => void;
+
+/**
+ * Createa a command runner to start/stop the worker(with kubernetes health checks)
+ * and an event register function to help track when the worker starts and when it
+ * dies.
+ * @param name name of the worker service
+ * @param port port to run the health server on
+ * @param subConn connection used by the subscriber
+ * @param registrar function that defines what queues and exchanges to listen to
+ */
+export function worker(
+  name: string,
+  port: string,
+  subConn: Connection,
+  registrar: (logger: Logger) => Promise<void>
+): [Runner, EventRegistrar] {
   const logger = createLogger({
-    name: config.worker_name,
+    name,
     serializers: {
       err: Logger.stdSerializers.err
     }
   });
 
-  let conn: MongooseConnection;
+  const events = new AsyncEmitter();
+
   let httpServer: any;
 
-  const start = async () => {
-    await subscriber.init(config.amqp_url);
-    const subscriberCon = subscriber.getConnection();
-    subscriberCon.on("error", (err: any) => {
-      logger.error(err);
-      process.exit(1);
-    });
+  const runner = (command: string) => {
+    switch (command) {
+      case "start":
+        // ensure to link it with provider immediately
+        subConn.on("error", (err: any) => {
+          logger.error(err);
+          process.exit(1);
+        });
 
-    // Start simple server for  health check
-    const healthApp = express();
-    healthApp.get("/", (_req: Request, res: Response) => {
-      res.status(200).json({ status: "UP" });
-    });
+        // Start simple server for  health check
+        const healthApp = express();
+        healthApp.get("/", (_req: Request, res: Response) => {
+          res.status(200).json({ status: "UP" });
+        });
+        httpServer = healthApp.listen(port);
+        logger.info(`🌋 Health check running on port ${port}`);
 
-    httpServer = healthApp.listen(config.app_port);
-    logger.info(`🌋 Health check running on port ${config.app_port}`);
+        events.emitSync("start");
 
-    // connect to mongodb
-    conn = await mongoose.createConnection(
-      config.mongodb_url,
-      config.secure_db ? secureMongoOpts(config) : defaultMongoOpts
-    );
-    logger.info("📦 MongoDB Connected!");
+        return registrar(logger);
+      case "stop":
+        logger.info(`Shutting down ${name} worker`);
+        httpServer.close();
 
-    // call user's setup code
-    if (config.onStart) {
-      await config.onStart(logger);
+        events.emitSync("stop");
+
+        process.exit(1);
+      default:
+        throw new Error("Command not supported");
     }
-
-    // now we can register handlers
-    registrar(logger);
   };
 
-  // create stop function. This adds 20 lines but has to be here due
-  // the dependencies
-  const stop = async () => {
-    try {
-      logger.info(`Shutting down ${config.worker_name} worker`);
+  events.on("error", (event, err) => {
+    logger.error(err, `Error when running handler for "${event}" event`);
+  });
 
-      await subscriber.close();
-      await conn.close();
-      httpServer.close();
-
-      // custom exit handler
-      if (config.onStop) {
-        await config.onStop(logger);
-      }
-    } catch (err) {
-      logger.error(err, `An error occured while stopping ${config.worker_name} worker`);
-      process.exit(1);
-    }
+  const eventRegistrar = (event: "start" | "stop", handler: (log: Logger) => Promise<void>) => {
+    events.once(event, () => handler(logger));
   };
 
   process.once("SIGINT", async () => {
-    await stop();
+    await runner("stop");
   });
 
-  return [start, stop];
+  return [runner, eventRegistrar];
 }
 
 /**
