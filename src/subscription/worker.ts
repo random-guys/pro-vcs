@@ -66,7 +66,7 @@ export function worker(
 
         await events.emitSync("stop");
 
-        process.exit(1);
+        process.exit(0);
       default:
         throw new Error("Command not supported");
     }
