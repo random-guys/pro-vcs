@@ -1,43 +1,42 @@
-import kebabCase from "lodash/kebabCase";
-import sinon from "sinon";
 import { publisher } from "@random-guys/eventbus";
-import { RPCClient, FinalRequest } from "../src";
+import sinon from "sinon";
+import { CreateEvent, ObjectRepository, PayloadModel } from "../src";
 
-const ReviewClient = new RPCClient();
 const queue = sinon.stub(publisher, "queue");
 
-export class RPCClientMock {
-  private client: RPCClient;
-  constructor(private queue: string) {
-    this.client = new RPCClient();
-  }
+export interface MockResult<T extends PayloadModel> {
+  payload?: T;
+}
 
-  init(connection: any) {
-    return this.client.init(connection);
-  }
+export class RPCClientMock<T extends PayloadModel> {
+  constructor(private queue: string, private repo: ObjectRepository<T>) {}
 
-  mockReview<T>(method: string) {
-    return queue.withArgs(this.queue, sinon.match.any).callsFake(async (_queue: any, event: any) => {
+  mockReview(method: string, result: MockResult<T>) {
+    return queue.withArgs(this.queue, sinon.match.any).callsFake(async (_queue: any, event: CreateEvent<T>) => {
       if (!/create/.test(event.event_type)) {
         return true;
       }
 
-      const [, action] = event.event_type.split(".");
-      await ReviewClient.call<FinalRequest, T>(kebabCase(event.namespace), method, {
-        event_type: action,
-        owner: event.owner,
-        reference: event.reference
-      });
+      switch (method) {
+        case "onApprove":
+          result.payload = await this.repo.merge(event.reference);
+          break;
+        case "onReject":
+          result.payload = await this.repo.reject(event.reference);
+          break;
+        default:
+      }
+
       return true;
     });
   }
 
-  mockApproval<T>() {
-    return this.mockReview<T>("onApprove");
+  mockApproval(result: MockResult<T>) {
+    return this.mockReview("onApprove", result);
   }
 
-  mockRejection<T>() {
-    return this.mockReview<T>("onReject");
+  mockRejection(result: MockResult<T>) {
+    return this.mockReview("onReject", result);
   }
 
   mockAny() {
