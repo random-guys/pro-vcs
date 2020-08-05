@@ -136,7 +136,12 @@ export class ObjectRepository<T extends PayloadModel> {
 
     const result = await this.collection.insertOne(withDefaults);
     const rawObject = await this.collection.findOne({ _id: result.insertedId });
-    return this.schema.toObject(rawObject);
+    rawObject.toObject = () => this.schema.toObject(rawObject);
+
+    // notify client
+    await this.client.newObjectEvent(rawObject);
+
+    return rawObject.toObject();
   }
 
   async assertExists(query: object): Promise<void> {
