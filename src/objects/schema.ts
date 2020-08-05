@@ -2,6 +2,7 @@ import { timestamps, trimmedLowercaseString, trimmedString, uuid } from "@random
 import { unset } from "lodash";
 import values from "lodash/values";
 import { Schema, SchemaDefinition, SchemaOptions, SchemaTypes } from "mongoose";
+import uuidFn from "uuid/v4";
 import { mapperConfig } from "../schema";
 import { ObjectModel, ObjectState, PayloadModel } from "./model";
 
@@ -59,6 +60,27 @@ export class ObjectSchema<T extends PayloadModel> {
     );
   }
 
+  /**
+   * Set default properties for a PayloadModel. These are:
+   * - `_id`
+   * - `created_at`
+   * - `updated_at`
+   * @param data data to be stored. It's properties are treated as priority over defaults.
+   */
+  schemaDefaults(data: any) {
+    return {
+      _id: uuidFn(),
+      created_at: new Date(),
+      updated_at: new Date(),
+      ...data
+    };
+  }
+
+  /**
+   * Direct implementation of Mongoose's toObject which converts a raw mongodb object
+   * to a PayloadModel.
+   * @param data raw mongodb data to be converted to a PayloadModel
+   */
   toObject(data: any): T {
     const exclusionList = this.exclude;
     data.toJSON = function () {

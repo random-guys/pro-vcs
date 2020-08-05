@@ -122,7 +122,8 @@ export class ObjectRepository<T extends PayloadModel> {
   async createRaw(data: Partial<T>[]): Promise<T[]>;
   async createRaw(data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
     if (Array.isArray(data)) {
-      const result = await this.collection.insertMany(data);
+      const withDefaults = data.map(x => this.schema.schemaDefaults(x));
+      const result = await this.collection.insertMany(withDefaults);
 
       // index with correct order
       const ids = [];
@@ -134,7 +135,8 @@ export class ObjectRepository<T extends PayloadModel> {
 
       return rawObjects.map(o => this.schema.toObject(o));
     } else {
-      const result = await this.collection.insertOne(data);
+      const withDefaults = this.schema.schemaDefaults(data);
+      const result = await this.collection.insertOne(withDefaults);
       const rawObject = await this.collection.findOne({ _id: result.insertedId });
       return this.schema.toObject(rawObject);
     }
