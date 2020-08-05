@@ -123,8 +123,10 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param data data to be saved. Could be a single value or an array
    */
   async createRaw(owner: string, data: Partial<T>): Promise<T> {
+    const id = uuid();
     const withDefaults = {
-      _id: uuid(),
+      _id: id,
+      id: id,
       created_at: new Date(),
       updated_at: new Date(),
       ...data,
