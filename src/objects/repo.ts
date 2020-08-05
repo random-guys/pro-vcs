@@ -8,7 +8,8 @@ import {
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 import startCase from "lodash/startCase";
-import { Connection as MongooseConnection, SchemaDefinition, Schema, Collection } from "mongoose";
+import { Collection, Connection as MongooseConnection, SchemaDefinition } from "mongoose";
+import uuid from "uuid/v4";
 import { mongoSet } from "../object";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
@@ -84,7 +85,7 @@ export class ObjectRepository<T extends PayloadModel> {
 
   /**
    * Create a frozen object and notify `pro-hub`
-   * @param owner ID of use that can make further changes to this object until approved
+   * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved
    */
   async create(owner: string, data: Partial<T>): Promise<T> {
@@ -116,13 +117,27 @@ export class ObjectRepository<T extends PayloadModel> {
 
   /**
    * Just like `create` except it writes directly to MongoDB. Do make sure to set default values
+   * validate the types of the values as this bypasses mongoose validation. Although it handles
+   * _id and timestamps.
+   * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved. Could be a single value or an array
    */
-  async createRaw(data: Partial<T>): Promise<T>;
-  async createRaw(data: Partial<T>[]): Promise<T[]>;
-  async createRaw(data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
+  async createRaw(owner: string, data: Partial<T>): Promise<T>;
+  async createRaw(owner: string, data: Partial<T>[]): Promise<T[]>;
+  async createRaw(owner: string, data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
     if (Array.isArray(data)) {
-      const withDefaults = data.map(x => this.schema.schemaDefaults(x));
+      // set defaults
+      const withDefaults = data.map(x => {
+        return {
+          _id: uuid(),
+          created_at: new Date(),
+          updated_at: new Date(),
+          ...x,
+          __owner: owner,
+          object_state: ObjectState.Created
+        };
+      });
+
       const result = await this.collection.insertMany(withDefaults);
 
       // index with correct order
@@ -135,7 +150,15 @@ export class ObjectRepository<T extends PayloadModel> {
 
       return rawObjects.map(o => this.schema.toObject(o));
     } else {
-      const withDefaults = this.schema.schemaDefaults(data);
+      const withDefaults = {
+        _id: uuid(),
+        created_at: new Date(),
+        updated_at: new Date(),
+        ...data,
+        __owner: owner,
+        object_state: ObjectState.Created
+      };
+
       const result = await this.collection.insertOne(withDefaults);
       const rawObject = await this.collection.findOne({ _id: result.insertedId });
       return this.schema.toObject(rawObject);
