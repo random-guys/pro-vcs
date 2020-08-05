@@ -15,6 +15,8 @@ const MetadateSchema: SchemaDefinition = {
   }
 };
 
+const defaultExclusionList = ["__owner", "__patch", "_id"];
+
 /**
  * `ObjectSchema` creates a mongoose schema that can store an `EventModel`. This is the where
  * the implementation of `toObject`,`toJSON` and `asObject` is created.
@@ -27,9 +29,9 @@ export class ObjectSchema<T extends PayloadModel> {
    * the schema created by `ObjectSchema` and to be used by mongoose
    */
   readonly schema: Schema;
-  constructor(payloadSchema: SchemaDefinition, exclude: string[] = [], options?: SchemaOptions) {
+  constructor(payloadSchema: SchemaDefinition, private exclude: string[] = [], options?: SchemaOptions) {
     // remove metadata, but add toJSON to remove excluded properties
-    const objectMapper = mapperConfig(["__owner", "__patch"], (data: T) => {
+    const objectMapper = mapperConfig(defaultExclusionList, (data: T) => {
       data["toJSON"] = function () {
         const copy = { ...this };
         exclude.forEach(path => {
@@ -42,7 +44,7 @@ export class ObjectSchema<T extends PayloadModel> {
     });
 
     // remove metadata and excluded properties
-    const jsonMapper = mapperConfig<ObjectModel<T>>(["__owner", "__patch", ...exclude]);
+    const jsonMapper = mapperConfig<ObjectModel<T>>([...defaultExclusionList, ...exclude]);
 
     this.schema = new Schema(
       {

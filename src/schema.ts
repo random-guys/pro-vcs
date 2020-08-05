@@ -1,7 +1,6 @@
 import unset from "lodash/unset";
 
 export function mapperConfig<T>(exclude: string[], preCleanup?: (data: T) => any) {
-  exclude.unshift("_id");
   preCleanup = preCleanup ? preCleanup : x => x;
 
   // default config for toJSON and toObject
