@@ -10,4 +10,4 @@ const UserSchemaDef: SchemaDefinition = {
 };
 
 export const UserSchema = new ObjectSchema<User>(UserSchemaDef, ["password_hash"]);
-UserSchema.schema.index({ email_address: 1, full_name: 1 }, { unique: true });
+UserSchema.mongooseSchema.index({ email_address: 1, full_name: 1 }, { unique: true });
