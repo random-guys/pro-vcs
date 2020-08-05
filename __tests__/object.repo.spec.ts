@@ -13,7 +13,7 @@ import sinon from "sinon";
 describe("ProVCS Repo Constraints", () => {
   let conn: Connection;
   let dataRepo: ObjectRepository<User>;
-  let client: RPCClientMock;
+  let client: RPCClientMock<User>;
 
   beforeAll(async () => {
     dotenv.config();
@@ -26,8 +26,7 @@ describe("ProVCS Repo Constraints", () => {
     dataRepo = new ObjectRepository(conn, "User", UserSchema);
     await dataRepo.initClient(process.env.QUEUE, publisher.getConnection(), new UserMerger(), logger);
 
-    client = new RPCClientMock(process.env.QUEUE);
-    await client.init(publisher.getConnection());
+    client = new RPCClientMock(process.env.QUEUE, dataRepo);
   }, 5000);
 
   afterAll(async () => {
