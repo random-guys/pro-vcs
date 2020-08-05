@@ -28,16 +28,13 @@ export class ObjectSchema<T extends PayloadModel> {
   /**
    * the schema created by `ObjectSchema` and to be used by mongoose
    */
-  readonly schema: Schema;
+  readonly mongooseSchema: Schema;
   constructor(payloadSchema: SchemaDefinition, private exclude: string[] = [], options?: SchemaOptions) {
     // remove metadata, but add toJSON to remove excluded properties
     const objectMapper = mapperConfig(defaultExclusionList, (data: T) => {
       data["toJSON"] = function () {
         const copy = { ...this };
-        exclude.forEach(path => {
-          unset(copy, path);
-        });
-
+        exclude.forEach(path => unset(copy, path));
         return copy;
       };
       return data;
@@ -46,7 +43,7 @@ export class ObjectSchema<T extends PayloadModel> {
     // remove metadata and excluded properties
     const jsonMapper = mapperConfig<ObjectModel<T>>([...defaultExclusionList, ...exclude]);
 
-    this.schema = new Schema(
+    this.mongooseSchema = new Schema(
       {
         _id: uuid,
         ...MetadateSchema,
@@ -61,26 +58,20 @@ export class ObjectSchema<T extends PayloadModel> {
       }
     );
   }
-}
 
-/**
- * Convert a raw MongoDB ObjectModel to a PayloadModel.
- * @param data object to be converted
- * @param exclude property paths to be excluded from JSON.stringify
- */
-export function rawToObject<T>(data: any, ...exclude: string[]): T {
-  data.toJSON = function () {
-    const copy = { ...this };
-    exclude.forEach(path => {
-      unset(copy, path);
-    });
+  toObject(data: any): T {
+    const exclusionList = this.exclude;
+    data.toJSON = function () {
+      const copy = { ...this };
+      exclusionList.forEach(path => {
+        unset(copy, path);
+      });
 
-    return copy;
-  };
+      return copy;
+    };
 
-  ["__owner", "__patch", "_id"].forEach(k => {
-    unset(data, k);
-  });
+    defaultExclusionList.forEach(k => unset(data, k));
 
-  return data;
+    return data;
+  }
 }

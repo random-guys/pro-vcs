@@ -12,7 +12,7 @@ import { Connection as MongooseConnection, SchemaDefinition, Schema, Collection 
 import { mongoSet } from "../object";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
-import { ObjectSchema, rawToObject } from "./schema";
+import { ObjectSchema } from "./schema";
 
 /**
  * `InvalidOperation` is usually thrown when a user tries
@@ -42,7 +42,7 @@ export class ObjectRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
   private collection: Collection;
-  private exclusionList: string[];
+  private schema: ObjectSchema<T>;
   private client: RemoteClient<T>;
 
   /**
@@ -62,13 +62,11 @@ export class ObjectRepository<T extends PayloadModel> {
     schema: SchemaDefinition | ObjectSchema<T>,
     exclude: string[] = []
   ) {
-    const mongooseSchema = schema instanceof ObjectSchema ? schema : new ObjectSchema(schema, exclude);
-    this.internalRepo = new BaseRepository(conn, name, mongooseSchema.schema);
+    this.schema = schema instanceof ObjectSchema ? schema : new ObjectSchema(schema, exclude);
+    this.internalRepo = new BaseRepository(conn, name, this.schema.mongooseSchema);
     this.name = this.internalRepo.name;
     this.client = new RemoteClient(this);
-
     this.collection = this.internalRepo.model.collection;
-    this.exclusionList = exclude;
   }
 
   /**
@@ -134,11 +132,11 @@ export class ObjectRepository<T extends PayloadModel> {
 
       const rawObjects = await this.collection.find({ _id: { $in: ids } }).toArray();
 
-      return rawObjects.map(o => rawToObject(o, ...this.exclusionList));
+      return rawObjects.map(o => this.schema.toObject(o));
     } else {
       const result = await this.collection.insertOne(data);
       const rawObject = await this.collection.findOne({ _id: result.insertedId });
-      return rawToObject(rawObject, ...this.exclusionList);
+      return this.schema.toObject(rawObject);
     }
   }
 
