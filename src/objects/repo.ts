@@ -315,6 +315,44 @@ export class ObjectRepository<T extends PayloadModel> {
   }
 
   /**
+   * Pretty much like `merge` except it uses mongodb directly
+   * @param reference ID of the object being stabilised
+   * @param updates optional mongodb updates parameters.
+   */
+  async mergeRaw(reference: string, updates = {}): Promise<T> {
+    const data = await this.internalRepo.byID(reference);
+
+    const updateQuery = { _id: data.id, object_state: data.object_state };
+
+    if (data.object_state === ObjectState.Stable) {
+      throw new InvalidOperation("Cannot merge a stable object");
+    }
+
+    if (data.object_state === ObjectState.Deleted) {
+      return this.internalRepo.destroy(updateQuery).then(asObject);
+    }
+
+    updates["$set"] = {
+      ...updates["$set"],
+      object_state: ObjectState.Stable,
+      __owner: null,
+      __patch: null
+    };
+
+    if (data.object_state === ObjectState.Updated) {
+      updates["$set"] = { ...data.__patch, ...updates["$set"] };
+    }
+
+    const result = await this.collection.findOneAndUpdate(updateQuery, updates, { returnOriginal: false });
+
+    if (result.ok != 1) {
+      throw new InconsistentState();
+    }
+
+    return this.schema.toObject(result.value);
+  }
+
+  /**
    * Rolls back any unapproved changes on an object
    * @param reference ID of the object being normalized
    * @param updates optional updates to add when merging
