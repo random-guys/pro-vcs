@@ -8,11 +8,11 @@ import {
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 import startCase from "lodash/startCase";
-import { Connection as MongooseConnection, SchemaDefinition, Schema } from "mongoose";
+import { Connection as MongooseConnection, SchemaDefinition, Schema, Collection } from "mongoose";
 import { mongoSet } from "../object";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
-import { ObjectSchema } from "./schema";
+import { ObjectSchema, rawToObject } from "./schema";
 
 /**
  * `InvalidOperation` is usually thrown when a user tries
@@ -41,6 +41,8 @@ export class InconsistentState extends Error {
 export class ObjectRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
+  private collection: Collection;
+  private exclusionList: string[];
   private client: RemoteClient<T>;
 
   /**
@@ -64,6 +66,9 @@ export class ObjectRepository<T extends PayloadModel> {
     this.internalRepo = new BaseRepository(conn, name, mongooseSchema.schema);
     this.name = this.internalRepo.name;
     this.client = new RemoteClient(this);
+
+    this.collection = this.internalRepo.model.collection;
+    this.exclusionList = exclude;
   }
 
   /**
@@ -108,6 +113,32 @@ export class ObjectRepository<T extends PayloadModel> {
       return objects.map(asObject);
     } else {
       return this.internalRepo.create({ ...data, object_state: ObjectState.Stable });
+    }
+  }
+
+  /**
+   * Just like `create` except it writes directly to MongoDB. Do make sure to set default values
+   * @param data data to be saved. Could be a single value or an array
+   */
+  async createRaw(data: Partial<T>): Promise<T>;
+  async createRaw(data: Partial<T>[]): Promise<T[]>;
+  async createRaw(data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
+    if (Array.isArray(data)) {
+      const result = await this.collection.insertMany(data);
+
+      // index with correct order
+      const ids = [];
+      Object.keys(result.insertedIds).forEach(i => {
+        ids[i] = result.insertedIds[i];
+      });
+
+      const rawObjects = await this.collection.find({ _id: { $in: ids } }).toArray();
+
+      return rawObjects.map(o => rawToObject(o, ...this.exclusionList));
+    } else {
+      const result = await this.collection.insertOne(data);
+      const rawObject = await this.collection.findOne({ _id: result.insertedId });
+      return rawToObject(rawObject, ...this.exclusionList);
     }
   }
 

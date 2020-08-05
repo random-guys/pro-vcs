@@ -60,3 +60,25 @@ export class ObjectSchema<T extends PayloadModel> {
     );
   }
 }
+
+/**
+ * Convert a raw MongoDB ObjectModel to a PayloadModel.
+ * @param data object to be converted
+ * @param exclude property paths to be excluded from JSON.stringify
+ */
+export function rawToObject<T>(data: any, ...exclude: string[]): T {
+  data.toJSON = function () {
+    const copy = { ...this };
+    exclude.forEach(path => {
+      unset(copy, path);
+    });
+
+    return copy;
+  };
+
+  ["__owner", "__patch", "_id"].forEach(k => {
+    unset(data, k);
+  });
+
+  return data;
+}
