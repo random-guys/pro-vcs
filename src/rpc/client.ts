@@ -75,12 +75,7 @@ export class RPCClient {
    * @param method specific method to call
    * @param args arguments for the method.
    */
-  async callWith<T, U>(
-    req: RequestContract,
-    namespace: string,
-    method: string,
-    args: T
-  ): Promise<U> {
+  async callWith<T, U>(req: RequestContract, namespace: string, method: string, args: T): Promise<U> {
     return this.sendRequest(fromRequest(req, namespace, method, args));
   }
 }

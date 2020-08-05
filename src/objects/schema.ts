@@ -66,9 +66,6 @@ export class ObjectSchema<T extends PayloadModel> {
    * @param data raw mongodb data to be converted to a PayloadModel
    */
   toObject(data: any): T {
-    // set default virtuals
-    data.id = data._id;
-
     const exclusionList = this.exclude;
     data.toJSON = function () {
       const copy = { ...this };

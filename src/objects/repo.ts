@@ -122,47 +122,26 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved. Could be a single value or an array
    */
-  async createRaw(owner: string, data: Partial<T>): Promise<T>;
-  async createRaw(owner: string, data: Partial<T>[]): Promise<T[]>;
-  async createRaw(owner: string, data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
-    if (Array.isArray(data)) {
-      // set defaults
-      const withDefaults = data.map(x => {
-        return {
-          _id: uuid(),
-          created_at: new Date(),
-          updated_at: new Date(),
-          ...x,
-          __owner: owner,
-          object_state: ObjectState.Created
-        };
-      });
+  async createRaw(owner: string, data: Partial<T>): Promise<T> {
+    const id = uuid();
+    const withDefaults = {
+      _id: id,
+      id: id,
+      created_at: new Date(),
+      updated_at: new Date(),
+      ...data,
+      __owner: owner,
+      object_state: ObjectState.Created
+    };
 
-      const result = await this.collection.insertMany(withDefaults);
+    const result = await this.collection.insertOne(withDefaults);
+    const rawObject = await this.collection.findOne({ _id: result.insertedId });
+    rawObject.toObject = () => this.schema.toObject(rawObject);
 
-      // index with correct order
-      const ids = [];
-      Object.keys(result.insertedIds).forEach(i => {
-        ids[i] = result.insertedIds[i];
-      });
+    // notify client
+    await this.client.newObjectEvent(rawObject);
 
-      const rawObjects = await this.collection.find({ _id: { $in: ids } }).toArray();
-
-      return rawObjects.map(o => this.schema.toObject(o));
-    } else {
-      const withDefaults = {
-        _id: uuid(),
-        created_at: new Date(),
-        updated_at: new Date(),
-        ...data,
-        __owner: owner,
-        object_state: ObjectState.Created
-      };
-
-      const result = await this.collection.insertOne(withDefaults);
-      const rawObject = await this.collection.findOne({ _id: result.insertedId });
-      return this.schema.toObject(rawObject);
-    }
+    return rawObject.toObject();
   }
 
   async assertExists(query: object): Promise<void> {
@@ -312,7 +291,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * Stabilises an object based on its state. Returns the newest state
    * of the object
    * @param reference ID of the object being stabilised
-   * @param updates optional updates to add when merging
+   * @param updates optional updates to add when merging.
    */
   async merge(reference: string, updates?: object): Promise<T> {
     const data = await this.internalRepo.byID(reference);
