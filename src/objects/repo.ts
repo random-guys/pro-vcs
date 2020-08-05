@@ -122,47 +122,19 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved. Could be a single value or an array
    */
-  async createRaw(owner: string, data: Partial<T>): Promise<T>;
-  async createRaw(owner: string, data: Partial<T>[]): Promise<T[]>;
-  async createRaw(owner: string, data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
-    if (Array.isArray(data)) {
-      // set defaults
-      const withDefaults = data.map(x => {
-        return {
-          _id: uuid(),
-          created_at: new Date(),
-          updated_at: new Date(),
-          ...x,
-          __owner: owner,
-          object_state: ObjectState.Created
-        };
-      });
+  async createRaw(owner: string, data: Partial<T>): Promise<T> {
+    const withDefaults = {
+      _id: uuid(),
+      created_at: new Date(),
+      updated_at: new Date(),
+      ...data,
+      __owner: owner,
+      object_state: ObjectState.Created
+    };
 
-      const result = await this.collection.insertMany(withDefaults);
-
-      // index with correct order
-      const ids = [];
-      Object.keys(result.insertedIds).forEach(i => {
-        ids[i] = result.insertedIds[i];
-      });
-
-      const rawObjects = await this.collection.find({ _id: { $in: ids } }).toArray();
-
-      return rawObjects.map(o => this.schema.toObject(o));
-    } else {
-      const withDefaults = {
-        _id: uuid(),
-        created_at: new Date(),
-        updated_at: new Date(),
-        ...data,
-        __owner: owner,
-        object_state: ObjectState.Created
-      };
-
-      const result = await this.collection.insertOne(withDefaults);
-      const rawObject = await this.collection.findOne({ _id: result.insertedId });
-      return this.schema.toObject(rawObject);
-    }
+    const result = await this.collection.insertOne(withDefaults);
+    const rawObject = await this.collection.findOne({ _id: result.insertedId });
+    return this.schema.toObject(rawObject);
   }
 
   async assertExists(query: object): Promise<void> {
