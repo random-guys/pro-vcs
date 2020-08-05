@@ -9,7 +9,7 @@ describe("Event Schema Rules", () => {
 
   beforeAll(async () => {
     conn = await mongoose.createConnection("mongodb://localhost:27017/sterlingpro-test", defaultMongoOpts);
-    dataRepo = new BaseRepository(conn, "User", UserSchema.schema);
+    dataRepo = new BaseRepository(conn, "User", UserSchema.mongooseSchema);
   });
 
   afterAll(async () => {
