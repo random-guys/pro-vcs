@@ -118,7 +118,7 @@ export class ObjectRepository<T extends PayloadModel> {
   /**
    * Just like `create` except it writes directly to MongoDB. Do make sure to set default values
    * validate the types of the values as this bypasses mongoose validation. Although it handles
-   * _id and timestamps.
+   * _id and timestamps. Also avoid virtuals if you're going to use this.
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved. Could be a single value or an array
    */
