@@ -291,7 +291,7 @@ export class ObjectRepository<T extends PayloadModel> {
    * Stabilises an object based on its state. Returns the newest state
    * of the object
    * @param reference ID of the object being stabilised
-   * @param updates optional updates to add when merging
+   * @param updates optional updates to add when merging.
    */
   async merge(reference: string, updates?: object): Promise<T> {
     const data = await this.internalRepo.byID(reference);

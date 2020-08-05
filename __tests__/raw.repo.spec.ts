@@ -5,13 +5,13 @@ import dotenv from "dotenv";
 import mongoose, { Connection } from "mongoose";
 import sinon from "sinon";
 import { ObjectRepository, ObjectState } from "../src";
-import { RPCClientMock } from "./client";
+import { RPCClientMock, MockResult } from "./client";
 import { mockUser, User, UserSchema } from "./mocks/user";
 import { UserMerger } from "./mocks/user/user.merger";
 
 let conn: Connection;
 let dataRepo: ObjectRepository<User>;
-let client: RPCClientMock;
+let client: RPCClientMock<User>;
 
 beforeAll(async () => {
   dotenv.config();
@@ -24,8 +24,7 @@ beforeAll(async () => {
   dataRepo = new ObjectRepository(conn, "User", UserSchema);
   await dataRepo.initClient(process.env.QUEUE, publisher.getConnection(), new UserMerger(), logger);
 
-  client = new RPCClientMock(process.env.QUEUE);
-  await client.init(publisher.getConnection());
+  client = new RPCClientMock(process.env.QUEUE, dataRepo);
 }, 5000);
 
 afterAll(async () => {
@@ -54,17 +53,12 @@ describe("Creating in mongodb directly", () => {
     expect(readerUser.object_state).toBe(ObjectState.Frozen);
   });
 
-  it("should create multiple PayloadModel objects", async () => {
-    client.mockAny();
+  it("should trigger a merge on approval", async () => {
+    const mergedUser: MockResult<User> = {};
+    client.mockApproval(mergedUser);
 
-    const users = await dataRepo.createRaw("arewaolakunle", [mockUser(), mockUser()]);
-
-    expect(users).toHaveLength(2);
-
-    users.forEach(user => {
-      expect(user.id).toBeDefined();
-      expect(user.created_at).toBeDefined();
-      expect(user.updated_at).toBeDefined();
-    });
+    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+    expect(mergedUser.payload.id).toBe(mergedUser.payload._id);
+    expect(mergedUser.payload.object_state).toBe(ObjectState.Stable);
   });
 });
