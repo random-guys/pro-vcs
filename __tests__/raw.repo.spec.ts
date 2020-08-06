@@ -62,3 +62,37 @@ describe("Creating in mongodb directly", () => {
     expect(mergedUser.payload.object_state).toBe(ObjectState.Stable);
   });
 });
+
+describe("Merging to mongodb directly", () => {
+  it("stabilises an unstable model", async () => {
+    client.mockAny();
+
+    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+
+    const mergedUser = await dataRepo.mergeRaw(user.id);
+
+    expect(mergedUser.id).toBe(user.id);
+    expect(mergedUser.object_state).toBe(ObjectState.Stable);
+  });
+
+  it("uses mongodb update operators", async () => {
+    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+    const mergedUser = await dataRepo.mergeRaw(user.id, { $inc: { age: 10 } });
+
+    expect(mergedUser.id).toBe(user.id);
+    expect(mergedUser.object_state).toBe(ObjectState.Stable);
+
+    expect(mergedUser["age"]).toBe(10);
+  });
+
+  it("merges the $set operator", async () => {
+    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+    const mergedUser = await dataRepo.mergeRaw(user.id, { $inc: { age: 10 }, $set: { wildlife: true } });
+
+    expect(mergedUser.id).toBe(user.id);
+    expect(mergedUser.object_state).toBe(ObjectState.Stable);
+
+    expect(mergedUser["age"]).toBe(10);
+    expect(mergedUser["wildlife"]).toBe(true);
+  });
+});
