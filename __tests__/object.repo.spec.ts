@@ -1,59 +1,43 @@
 import { defaultMongoOpts } from "@random-guys/bucket";
-import { publisher } from "@random-guys/eventbus";
-import { createLogger } from "bunyan";
-import dotenv from "dotenv";
-import faker from "faker";
+import dotenv from 'dotenv';
+import faker from 'faker';
 import mongoose, { Connection } from "mongoose";
-import { ObjectRepository, ObjectState } from "../src";
-import { mockUser, User, UserSchema } from "./mocks/user";
-import { UserMerger } from "./mocks/user/user.merger";
-import { RPCClientMock } from "./client";
-import sinon from "sinon";
+import { ObjectState } from '../src/objects';
+import { ObjectRepositoryV2 } from '../src/objects/repo-v2';
+import { User } from "./mocks/user";
+import { mockUser } from './mocks/user/index';
+import { UserSchema } from './mocks/user/user.schema';
 
-describe("ProVCS Repo Constraints", () => {
-  let conn: Connection;
-  let dataRepo: ObjectRepository<User>;
-  let client: RPCClientMock<User>;
+let conn: Connection;
+let dataRepo: ObjectRepositoryV2<User>;
 
-  beforeAll(async () => {
-    dotenv.config();
+beforeAll(async () => {
+  dotenv.config();
 
-    const logger = createLogger({ name: "test" });
+  conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
+  dataRepo = new ObjectRepositoryV2(conn, "User", UserSchema);
+}, 5000);
 
-    conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
-    await publisher.init(process.env.AMQP_URL);
+afterAll(async () => {
+  await conn.close();
+});
 
-    dataRepo = new ObjectRepository(conn, "User", UserSchema);
-    await dataRepo.initClient(process.env.QUEUE, publisher.getConnection(), new UserMerger(), logger);
+afterEach(async () => {
+  await dataRepo.truncate({});
+});
 
-    client = new RPCClientMock(process.env.QUEUE, dataRepo);
-  }, 5000);
-
-  afterAll(async () => {
-    await conn.close();
-  });
-
-  afterEach(async () => {
-    sinon.resetHistory();
-    sinon.resetBehavior();
-    await conn.dropDatabase();
-  });
-
-  it("Should add create metadata to a new event", async () => {
-    client.mockAny();
-
-    const user = await dataRepo.create("arewaolakunle", mockUser());
-    const readerUser = await dataRepo.get("someone", user.id);
+describe("Object Repo Constraints", () => {
+  it("should create User", async () => {
+    const user = await dataRepo.create("arewa-olakunle-da-zad", mockUser());
+    const user2 = await dataRepo.get("random-person", user.id);
 
     // owner should see created
     expect(user.object_state).toBe(ObjectState.Created);
     // ensure no other user can see created
-    expect(readerUser.object_state).toBe(ObjectState.Frozen);
+    expect(user2.object_state).toBe(ObjectState.Frozen);
   });
 
   it("Should update a pending create", async () => {
-    client.mockAny();
-
     const email = faker.internet.email();
     const user = await dataRepo.create("arewaolakunle", mockUser());
     const writeUser = await dataRepo.update("arewaolakunle", user.id, { email_address: email });
@@ -70,8 +54,6 @@ describe("ProVCS Repo Constraints", () => {
 
     const user = await dataRepo.createApproved(dto);
 
-    client.mockAny();
-
     const update = await dataRepo.update("tobslob", user.id, { full_name: name });
 
     await dataRepo.merge(update.id);
@@ -83,8 +65,6 @@ describe("ProVCS Repo Constraints", () => {
   });
 
   it("Should delete a pending create", async () => {
-    client.mockAny();
-
     const user = await dataRepo.create("arewaolakunle", mockUser());
     await dataRepo.delete("arewaolakunle", user.id);
 
@@ -96,8 +76,6 @@ describe("ProVCS Repo Constraints", () => {
     const email = faker.internet.email();
 
     const user = await dataRepo.createApproved(dto);
-
-    client.mockAny();
 
     await dataRepo.update("arewaolakunle", user.id, { email_address: email });
 
@@ -121,8 +99,6 @@ describe("ProVCS Repo Constraints", () => {
     const user = await dataRepo.createApproved(dto);
     await dataRepo.update("arewaolakunle", user.id, { email_address: firstMail });
 
-    client.mockAny();
-
     const writeUser = await dataRepo.update("arewaolakunle", user.id, { email_address: secondMail });
     const readerUser = await dataRepo.get("someone", user.id);
 
@@ -135,8 +111,6 @@ describe("ProVCS Repo Constraints", () => {
     const dto = mockUser();
 
     const user = await dataRepo.createApproved(dto);
-
-    client.mockAny();
 
     await dataRepo.update("arewaolakunle", user.id, { email_address: faker.internet.email() });
 
@@ -151,8 +125,6 @@ describe("ProVCS Repo Constraints", () => {
   it("Should create a delete event", async () => {
     const user = await dataRepo.createApproved(mockUser());
 
-    client.mockAny();
-
     const writeUser = await dataRepo.delete("arewaolakunle", user.id);
     const readerUser = await dataRepo.get("someone", user.id);
 
@@ -166,8 +138,6 @@ describe("ProVCS Repo Constraints", () => {
 
   it("Should undo a pending delete", async () => {
     const user = await dataRepo.createApproved(mockUser());
-
-    client.mockAny();
 
     // delete and undo
     await dataRepo.delete("arewaolakunle", user.id);
@@ -189,9 +159,7 @@ describe("ProVCS Repo Constraints", () => {
   });
 
   it("Should return the an approved user", async () => {
-    client.mockAny();
-
-    const user = await dataRepo.create("jose", mockUser());
+    const user = (await dataRepo.create("jose", mockUser())).toObject();
     const loadedUser = await dataRepo.byQuery("arewaolakunle", { full_name: user.full_name }, false, false);
 
     expect(loadedUser).toBeNull();
@@ -220,8 +188,6 @@ describe("ProVCS Repo Constraints", () => {
 
     const one = await dataRepo.createApproved(mockUser(firstMail));
     const two = await dataRepo.createApproved(mockUser(secondMail));
-
-    client.mockAny();
 
     await dataRepo.create("arewaolakunle", dto);
 
