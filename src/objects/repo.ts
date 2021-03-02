@@ -50,7 +50,8 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved
    */
-  async create(owner: string, data: Partial<T>): Promise<any | any[]> {
+  async create(owner: string, data: Partial<T>): Promise<T> {
+    // @ts-ignore bad typescript
     return this.internalRepo.create({
       object_state: ObjectState.Created,
       __owner: owner,

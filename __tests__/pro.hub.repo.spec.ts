@@ -55,7 +55,7 @@ describe("Pro VCS Repo constrints", () => {
   });
 
   it("Should update a pending create", async () => {
-    // client.mockAny();
+    client.mockAny();
 
     const email = faker.internet.email();
     const user = await dataRepo.create("arewaolakunle", mockUser());

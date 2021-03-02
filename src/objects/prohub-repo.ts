@@ -1,14 +1,9 @@
-import {
-  PaginationQuery,
-  PaginationQueryResult,
-  Query
-} from "@random-guys/bucket";
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 import { Connection as MongooseConnection, SchemaDefinition } from "mongoose";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { InconsistentState, InvalidOperation } from "./common";
-import { ObjectModel, ObjectState, PayloadModel } from "./model";
+import { ObjectState, PayloadModel } from "./model";
 import { ObjectRepository } from "./repo";
 import { ObjectSchema } from "./schema";
 
@@ -55,11 +50,11 @@ export class ProHubRepository<T extends PayloadModel> extends ObjectRepository<T
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved
    */
-  async create(owner: string, data: Partial<T>): Promise<T | T[]> {
+  async create(owner: string, data: Partial<T>): Promise<T> {
     const newObject = await super.create(owner, data);
 
-    await this.client.newObjectEvent(owner, newObject.toObject());
-    return newObject.toObject();
+    await this.client.newObjectEvent(owner, newObject);
+    return newObject;
   }
 
   /**

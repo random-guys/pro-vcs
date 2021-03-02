@@ -1,6 +1,6 @@
 import { publisher } from "@random-guys/eventbus";
 import sinon from "sinon";
-import { CreateEvent, ProVCSRepository, PayloadModel } from "../src";
+import { CreateEvent, ProHubRepository, PayloadModel } from "../src";
 
 const queue = sinon.stub(publisher, "queue");
 
@@ -9,7 +9,7 @@ export interface MockResult<T extends PayloadModel> {
 }
 
 export class RPCClientMock<T extends PayloadModel> {
-  constructor(private queue: string, private repo: ProVCSRepository<T>) { }
+  constructor(private queue: string, private repo: ProHubRepository<T>) { }
 
   mockReview(method: string, result: MockResult<T>) {
     return queue.withArgs(this.queue, sinon.match.any)
