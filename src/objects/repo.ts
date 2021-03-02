@@ -20,8 +20,8 @@ import { ObjectSchema } from "./schema";
 export class ObjectRepository<T extends PayloadModel> {
   readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
-  collection: Collection;
-  schema: ObjectSchema<T>;
+  private collection: Collection;
+  private schema: ObjectSchema<T>;
 
   /**
    * This creates an event repository
@@ -51,12 +51,13 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param data data to be saved
    */
   async create(owner: string, data: Partial<T>): Promise<T> {
-    // @ts-ignore bad typescript
-    return this.internalRepo.create({
-      object_state: ObjectState.Created,
-      __owner: owner,
-      ...data
-    });
+    return (
+      await this.internalRepo.create({
+        object_state: ObjectState.Created,
+        __owner: owner,
+        ...data
+      }))
+      .toObject();
   }
 
   /**

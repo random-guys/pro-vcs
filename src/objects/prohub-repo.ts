@@ -72,10 +72,6 @@ export class ProHubRepository<T extends PayloadModel> extends ObjectRepository<T
     return rawObject;
   }
 
-  async assertExists(query: object): Promise<void> {
-    await super.assertExists(query);
-  }
-
   /**
    * Update an object in place if unstable or create a pending update
    * if stable.
