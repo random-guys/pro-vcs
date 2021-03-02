@@ -159,7 +159,7 @@ describe("Object Repo Constraints", () => {
   });
 
   it("Should return the an approved user", async () => {
-    const user = (await dataRepo.create("jose", mockUser())).toObject();
+    const user = await dataRepo.create("jose", mockUser());
     const loadedUser = await dataRepo.byQuery("arewaolakunle", { full_name: user.full_name }, false, false);
 
     expect(loadedUser).toBeNull();
