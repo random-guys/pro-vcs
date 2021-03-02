@@ -3,7 +3,7 @@ import { Connection } from "amqplib";
 import Logger from "bunyan";
 import { mongoSet } from "../object";
 import { PayloadModel } from "../objects";
-import { ProVCSRepository } from "../objects/pro-vcs-repo";
+import { ProHubRepository } from "../objects/prohub-repo";
 import { RPCService } from "../rpc";
 import {
   CloseEvent,
@@ -27,7 +27,7 @@ export class RemoteClient<T extends PayloadModel> {
    * Create a new client for talking to the VCS's remote
    * @param repository repository this client is to manage
    */
-  constructor(private repository: ProVCSRepository<T>) { }
+  constructor(private repository: ProHubRepository<T>) { }
 
   /**
    * Setup the RPC server for running the `RemoteObject` of

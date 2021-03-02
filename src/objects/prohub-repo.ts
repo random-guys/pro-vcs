@@ -9,14 +9,14 @@ import { Connection as MongooseConnection, SchemaDefinition } from "mongoose";
 import { RemoteClient, RemoteObject } from "../remote-vcs";
 import { InconsistentState, InvalidOperation } from "./common";
 import { ObjectModel, ObjectState, PayloadModel } from "./model";
-import { ObjectRepositoryV2 } from "./repo-v2";
+import { ObjectRepository } from "./repo";
 import { ObjectSchema } from "./schema";
 
 /**
  * `ObjectRepository` is base repository for reviewable objects. It tries it's best
  * to mirror `bucket's` `BaseRepository` methods.
  */
-export class ProVCSRepository<T extends PayloadModel> extends ObjectRepositoryV2<T> {
+export class ProHubRepository<T extends PayloadModel> extends ObjectRepository<T> {
   private client: RemoteClient<T>;
 
   /**
@@ -30,17 +30,10 @@ export class ProVCSRepository<T extends PayloadModel> extends ObjectRepositoryV2
   constructor(conn: MongooseConnection, name: string, schema: ObjectSchema<T>);
   constructor(conn: MongooseConnection, name: string, schema: SchemaDefinition, exclude: string[]);
   constructor(
-    conn: MongooseConnection,
-    name: string,
-    schema: SchemaDefinition | ObjectSchema<T>,
-    exclude: string[] = []
+    conn: MongooseConnection, name: string, schema: SchemaDefinition | ObjectSchema<T>, exclude: string[] = []
   ) {
-    if (schema instanceof ObjectSchema) {
-      super(conn, name, schema);
-    } else {
-      super(conn, name, schema, exclude);
-    }
-
+    // @ts-ignore TS cannot see base implementation
+    super(conn, name, schema, exclude);
     this.client = new RemoteClient(this);
   }
 
@@ -62,21 +55,11 @@ export class ProVCSRepository<T extends PayloadModel> extends ObjectRepositoryV2
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved
    */
-  async create(owner: string, data: Partial<T>): Promise<ObjectModel<T>> {
+  async create(owner: string, data: Partial<T>): Promise<T | T[]> {
     const newObject = await super.create(owner, data);
 
     await this.client.newObjectEvent(owner, newObject.toObject());
-    return newObject;
-  }
-
-  /**
-   * Create a stable object directly, bypassing review requests.
-   * @param data data to be saved
-   */
-  async createApproved(data: Partial<T>): Promise<T>;
-  async createApproved(data: Partial<T>[]): Promise<T[]>;
-  async createApproved(data: Partial<T> | Partial<T>[]): Promise<any | any[]> {
-    return super.createApproved(data);
+    return newObject.toObject();
   }
 
   /**
@@ -86,61 +69,16 @@ export class ProVCSRepository<T extends PayloadModel> extends ObjectRepositoryV2
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved. Could be a single value or an array
    */
-  async createRaw(owner: string, data: Partial<T>): Promise<ObjectModel<T>> {
+  async createRaw(owner: string, data: Partial<T>): Promise<T> {
     const rawObject = await super.createRaw(owner, data);
 
     // notify client
-    await this.client.newObjectEvent(owner, rawObject.toObject());
-
-    rawObject.toObject = () => this.schema.toObject(rawObject);
-    return rawObject.toObject();
+    await this.client.newObjectEvent(owner, rawObject);
+    return rawObject;
   }
 
   async assertExists(query: object): Promise<void> {
     await super.assertExists(query);
-  }
-
-  /**
-   * Get an object based on it's owner. Check out `markup`
-   * for more details
-   * @param user who's asking
-   * @param reference ID of the object
-   */
-  async get(user: string, reference: string): Promise<T> {
-    return await super.get(user, reference);
-  }
-
-  /**
-   * Search for an object based on a query. Note that this doesn't take
-   * into account pending updates.
-   * @param user who's asking. Use everyone if it's not important
-   * @param query mongo query to use for search
-   * @param fresh allow mongodb return unstable objects. `false` by default
-   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
-   */
-  async byQuery(user: string, query: object, fresh = false, throwOnNull = true): Promise<T> {
-    return await super.byQuery(user, query, fresh, throwOnNull);
-  }
-
-  /**
-   * Search for multiple objects based on a query. Note that this doesn't take
-   * into account pending updates.
-   * @param user who's asking. Use everyone if it's not important
-   * @param query mongo query to use for search
-   * @param fresh allow mongodb return unstable objects. `false` by default
-   */
-  async all(user: string, query: Query = {}, fresh = false): Promise<T[]> {
-    return await super.all(user, query, fresh);
-  }
-
-  /**
-   * This is like `all`, but it returns paginated results
-   * @param user who's asking. Use everyone if it's not important
-   * @param query mongo query to use for search
-   * @param fresh allow mongodb return unstable objects. `false` by default
-   */
-  async list(user: string, query: PaginationQuery, fresh = false): Promise<PaginationQueryResult<T>> {
-    return await super.list(user, query, fresh);
   }
 
   /**
@@ -172,16 +110,6 @@ export class ProVCSRepository<T extends PayloadModel> extends ObjectRepositoryV2
   }
 
   /**
-   * Update an object without going through the approval process.
-   * @param query MongoDB query object or id string
-   * @param update update to be applied
-   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
-   */
-  updateApproved(query: string | object, update: object, throwOnNull = true) {
-    return super.updateApproved(query, update, throwOnNull);
-  }
-
-  /**
    * Creates a pending delete for a stable object. Otherwise it just rolls back
    * changes introduced. Fails if the `user` passed is not the object's temporary
    * owner.
@@ -205,50 +133,5 @@ export class ProVCSRepository<T extends PayloadModel> extends ObjectRepositoryV2
       default:
         throw new InconsistentState();
     }
-  }
-
-  /**
-   * Permanently deletes a document without the approval process.
-   * @param query MongoDB query object or id string
-   * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
-   */
-  deleteApproved(query: string | object, throwOnNull = true) {
-    return super.deleteApproved(query, throwOnNull);
-  }
-
-  /**
-   * Permanently delete multiple documents document without the approval process.
-   * @param query MongoDB query object
-   */
-  truncate(query: object) {
-    return super.truncate(query);
-  }
-
-  /**
-   * Stabilises an object based on its state. Returns the newest state
-   * of the object
-   * @param reference ID of the object being stabilised
-   * @param updates optional updates to add when merging.
-   */
-  async merge(reference: string, updates?: object): Promise<T> {
-    return super.merge(reference, updates);
-  }
-
-  /**
-   * Pretty much like `merge` except it uses mongodb directly
-   * @param reference ID of the object being stabilised
-   * @param updates optional mongodb updates parameters.
-   */
-  async mergeRaw(reference: string, updates = {}): Promise<T> {
-    return super.mergeRaw(reference, updates);
-  }
-
-  /**
-   * Rolls back any unapproved changes on an object
-   * @param reference ID of the object being normalized
-   * @param updates optional updates to add when merging
-   */
-  async reject(reference: string, updates?: object): Promise<T> {
-    return super.reject(reference, updates);
   }
 }

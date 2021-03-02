@@ -6,14 +6,14 @@ import faker from "faker";
 import mongoose, { Connection } from "mongoose";
 import sinon from "sinon";
 import { ObjectState } from "../src";
-import { ProVCSRepository } from '../src/objects/pro-vcs-repo';
+import { ProHubRepository } from '../src/objects/prohub-repo';
 import { RPCClientMock } from "./client";
 import { mockUser, User, UserSchema } from "./mocks/user";
 import { UserMerger } from "./mocks/user/user.merger";
 
 describe("Pro VCS Repo constrints", () => {
   let conn: Connection;
-  let dataRepo: ProVCSRepository<User>;
+  let dataRepo: ProHubRepository<User>;
   let client: RPCClientMock<User>;
 
   beforeAll(async () => {
@@ -24,7 +24,7 @@ describe("Pro VCS Repo constrints", () => {
     conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
     await publisher.init(process.env.AMQP_URL);
 
-    dataRepo = new ProVCSRepository(conn, "User", UserSchema);
+    dataRepo = new ProHubRepository(conn, "User", UserSchema);
     await dataRepo.initClient(process.env.QUEUE, publisher.getConnection(), new UserMerger(), logger);
 
     client = new RPCClientMock(process.env.QUEUE, dataRepo);
@@ -44,9 +44,11 @@ describe("Pro VCS Repo constrints", () => {
     client.mockAny();
 
     const user = await dataRepo.create("arewaolakunle", mockUser());
+    //@ts-ignore
     const readerUser = await dataRepo.get("someone", user.id);
 
     // owner should see created
+    //@ts-ignore
     expect(user.object_state).toBe(ObjectState.Created);
     // ensure no other user can see created
     expect(readerUser.object_state).toBe(ObjectState.Frozen);
@@ -57,12 +59,13 @@ describe("Pro VCS Repo constrints", () => {
 
     const email = faker.internet.email();
     const user = await dataRepo.create("arewaolakunle", mockUser());
+    //@ts-ignore
     const writeUser = await dataRepo.update("arewaolakunle", user.id, { email_address: email });
+    //@ts-ignore
     const readerUser = await dataRepo.get("someone", user.id);
 
     // they must see the same thing
     expect(writeUser.email_address).toBe(email);
     expect(writeUser.email_address).toBe(readerUser.email_address);
   });
-
 });

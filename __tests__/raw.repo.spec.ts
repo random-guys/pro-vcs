@@ -2,19 +2,19 @@ import { defaultMongoOpts } from "@random-guys/bucket";
 import dotenv from 'dotenv';
 import mongoose, { Connection } from "mongoose";
 import { ObjectState } from '../src/objects';
-import { ObjectRepositoryV2 } from '../src/objects/repo-v2';
+import { ObjectRepository } from '../src/objects/repo';
 import { User } from "./mocks/user";
 import { mockUser } from './mocks/user/index';
 import { UserSchema } from './mocks/user/user.schema';
 
 let conn: Connection;
-let dataRepo: ObjectRepositoryV2<User>;
+let dataRepo: ObjectRepository<User>;
 
 beforeAll(async () => {
   dotenv.config();
 
   conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
-  dataRepo = new ObjectRepositoryV2(conn, "User", UserSchema);
+  dataRepo = new ObjectRepository(conn, "User", UserSchema);
 }, 5000);
 
 afterAll(async () => {
