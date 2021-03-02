@@ -2,7 +2,8 @@ import { publisher } from "@random-guys/eventbus";
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 import { mongoSet } from "../object";
-import { ObjectModel, ObjectRepository, PayloadModel } from "../objects";
+import { PayloadModel } from "../objects";
+import { ProHubRepository } from "../objects/prohub-repo";
 import { RPCService } from "../rpc";
 import {
   CloseEvent,
@@ -26,7 +27,7 @@ export class RemoteClient<T extends PayloadModel> {
    * Create a new client for talking to the VCS's remote
    * @param repository repository this client is to manage
    */
-  constructor(private repository: ObjectRepository<T>) {}
+  constructor(private repository: ProHubRepository<T>) { }
 
   /**
    * Setup the RPC server for running the `RemoteObject` of
@@ -69,48 +70,47 @@ export class RemoteClient<T extends PayloadModel> {
     return this.server.close();
   }
 
-  async newObjectEvent(newObject: ObjectModel<T>) {
+  async newObjectEvent(owner: string, object: T) {
     const event: NewObjectEvent<T> = {
       event_type: "create.new",
       namespace: this.repository.name,
-      reference: newObject.id,
-      owner: newObject.__owner,
-      payload: newObject.toObject()
+      reference: object.id,
+      owner: owner,
+      payload: object
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async updateObjectEvent(oldObject: ObjectModel<T>, update: Partial<T>) {
-    const oldPayload = oldObject.toObject();
-    const freshPayload = mongoSet(oldPayload, oldObject.__patch);
+  async updateObjectEvent(owner: string, oldPayload: T, update: Partial<T>, patch: any) {
+    const freshPayload = mongoSet(oldPayload, patch);
 
     const event: UpdateObjectEvent<T> = {
       event_type: "create.update",
       namespace: this.repository.name,
-      reference: oldObject.id,
-      owner: oldObject.__owner,
+      reference: oldPayload.id,
+      owner: owner,
       payload: freshPayload,
       previous_version: oldPayload
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async deleteObjectEvent(objectToDelete: ObjectModel<T>) {
+  async deleteObjectEvent(owner: string, objectToDelete: T) {
     const event: DeleteObjectEvent<T> = {
       event_type: "create.delete",
       namespace: this.repository.name,
       reference: objectToDelete.id,
-      owner: objectToDelete.__owner,
-      payload: objectToDelete.toObject()
+      owner: owner,
+      payload: objectToDelete
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async patch(reference: string, payload: ObjectModel<T>) {
+  async patch(reference: string, payload: T) {
     const event: PatchEvent<T> = {
       event_type: "patch",
       reference: reference,
-      payload: payload.toObject()
+      payload: payload
     };
     return await publisher.queue(this.remote, event);
   }

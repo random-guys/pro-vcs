@@ -1,30 +1,20 @@
 import { defaultMongoOpts } from "@random-guys/bucket";
-import { publisher } from "@random-guys/eventbus";
-import { createLogger } from "bunyan";
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 import mongoose, { Connection } from "mongoose";
-import sinon from "sinon";
-import { ObjectRepository, ObjectState } from "../src";
-import { RPCClientMock, MockResult } from "./client";
-import { mockUser, User, UserSchema } from "./mocks/user";
-import { UserMerger } from "./mocks/user/user.merger";
+import { ObjectState } from '../src/objects';
+import { ObjectRepository } from '../src/objects/repo';
+import { User } from "./mocks/user";
+import { mockUser } from './mocks/user/index';
+import { UserSchema } from './mocks/user/user.schema';
 
 let conn: Connection;
 let dataRepo: ObjectRepository<User>;
-let client: RPCClientMock<User>;
 
 beforeAll(async () => {
   dotenv.config();
 
-  const logger = createLogger({ name: "test" });
-
   conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
-  await publisher.init(process.env.AMQP_URL);
-
   dataRepo = new ObjectRepository(conn, "User", UserSchema);
-  await dataRepo.initClient(process.env.QUEUE, publisher.getConnection(), new UserMerger(), logger);
-
-  client = new RPCClientMock(process.env.QUEUE, dataRepo);
 }, 5000);
 
 afterAll(async () => {
@@ -32,15 +22,11 @@ afterAll(async () => {
 });
 
 afterEach(async () => {
-  sinon.resetHistory();
-  sinon.resetBehavior();
-  await conn.dropDatabase();
+  await dataRepo.truncate({});
 });
 
 describe("Creating in mongodb directly", () => {
   it("should create a PayloadModel object", async () => {
-    client.mockAny();
-
     const user = await dataRepo.createRaw("arewaolakunle", mockUser());
 
     expect(user.id).toBeDefined();
@@ -53,46 +39,35 @@ describe("Creating in mongodb directly", () => {
     expect(readerUser.object_state).toBe(ObjectState.Frozen);
   });
 
-  it("should trigger a merge on approval", async () => {
-    const mergedUser: MockResult<User> = {};
-    client.mockApproval(mergedUser);
+  describe("Merging to mongodb directly", () => {
+    it("stabilises an unstable model", async () => {
+      const user = await dataRepo.createRaw("arewaolakunle", mockUser());
 
-    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
-    expect(mergedUser.payload.id).toBe(mergedUser.payload._id);
-    expect(mergedUser.payload.object_state).toBe(ObjectState.Stable);
-  });
-});
+      const mergedUser = await dataRepo.mergeRaw(user.id);
 
-describe("Merging to mongodb directly", () => {
-  it("stabilises an unstable model", async () => {
-    client.mockAny();
+      expect(mergedUser.id).toBe(user.id);
+      expect(mergedUser.object_state).toBe(ObjectState.Stable);
+    });
 
-    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+    it("uses mongodb update operators", async () => {
+      const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+      const mergedUser = await dataRepo.mergeRaw(user.id, { $inc: { age: 10 } });
 
-    const mergedUser = await dataRepo.mergeRaw(user.id);
+      expect(mergedUser.id).toBe(user.id);
+      expect(mergedUser.object_state).toBe(ObjectState.Stable);
 
-    expect(mergedUser.id).toBe(user.id);
-    expect(mergedUser.object_state).toBe(ObjectState.Stable);
-  });
+      expect(mergedUser["age"]).toBe(10);
+    });
 
-  it("uses mongodb update operators", async () => {
-    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
-    const mergedUser = await dataRepo.mergeRaw(user.id, { $inc: { age: 10 } });
+    it("merges the $set operator", async () => {
+      const user = await dataRepo.createRaw("arewaolakunle", mockUser());
+      const mergedUser = await dataRepo.mergeRaw(user.id, { $inc: { age: 10 }, $set: { wildlife: true } });
 
-    expect(mergedUser.id).toBe(user.id);
-    expect(mergedUser.object_state).toBe(ObjectState.Stable);
+      expect(mergedUser.id).toBe(user.id);
+      expect(mergedUser.object_state).toBe(ObjectState.Stable);
 
-    expect(mergedUser["age"]).toBe(10);
-  });
-
-  it("merges the $set operator", async () => {
-    const user = await dataRepo.createRaw("arewaolakunle", mockUser());
-    const mergedUser = await dataRepo.mergeRaw(user.id, { $inc: { age: 10 }, $set: { wildlife: true } });
-
-    expect(mergedUser.id).toBe(user.id);
-    expect(mergedUser.object_state).toBe(ObjectState.Stable);
-
-    expect(mergedUser["age"]).toBe(10);
-    expect(mergedUser["wildlife"]).toBe(true);
-  });
+      expect(mergedUser["age"]).toBe(10);
+      expect(mergedUser["wildlife"]).toBe(true);
+    });
+  })
 });
