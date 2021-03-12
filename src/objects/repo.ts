@@ -5,35 +5,13 @@ import {
   PaginationQueryResult,
   Query
 } from "@random-guys/bucket";
-import { Connection } from "amqplib";
-import Logger from "bunyan";
 import startCase from "lodash/startCase";
 import { Collection, Connection as MongooseConnection, SchemaDefinition } from "mongoose";
 import uuid from "uuid/v4";
 import { mongoSet } from "../object";
-import { RemoteClient, RemoteObject } from "../remote-vcs";
+import { InconsistentState, InvalidOperation } from "./common";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
 import { ObjectSchema } from "./schema";
-
-/**
- * `InvalidOperation` is usually thrown when a user tries
- * to perform an operation on a frozen payload
- */
-export class InvalidOperation extends Error {
-  constructor(message: string) {
-    super(message);
-  }
-}
-
-/**
- * `InconsistentState` should only be thrown if invariants are not properly
- * enforced, or possible concurrency issues.
- */
-export class InconsistentState extends Error {
-  constructor() {
-    super("The database is in an inconsistent state. Please resolve");
-  }
-}
 
 /**
  * `ObjectRepository` is base repository for reviewable objects. It tries it's best
@@ -44,7 +22,6 @@ export class ObjectRepository<T extends PayloadModel> {
   readonly name: string;
   private collection: Collection;
   private schema: ObjectSchema<T>;
-  private client: RemoteClient<T>;
 
   /**
    * This creates an event repository
@@ -54,7 +31,6 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param schema ObjectSchema or Mongoose SchemaDefinition for the repo.
    * @param exclude properties to exclude from the serialized payload e.g. password
    */
-
   constructor(conn: MongooseConnection, name: string, schema: ObjectSchema<T>);
   constructor(conn: MongooseConnection, name: string, schema: SchemaDefinition, exclude: string[]);
   constructor(
@@ -66,21 +42,7 @@ export class ObjectRepository<T extends PayloadModel> {
     this.schema = schema instanceof ObjectSchema ? schema : new ObjectSchema(schema, exclude);
     this.internalRepo = new BaseRepository(conn, name, this.schema.mongooseSchema);
     this.name = this.internalRepo.name;
-    this.client = new RemoteClient(this);
     this.collection = this.internalRepo.model.collection;
-  }
-
-  /**
-   * Setup a merger for this repo as well as queue for object events. Note this
-   * should be called at most once(we expect you'll use one merger for your repo)
-   * else it would throw an error.
-   * @param remoteQueue name of the event queue for request events
-   * @param connection AMQP connection that drives the underlying comms
-   * @param merger implementation of the merger
-   * @param logger logger to help track requests to the merger
-   */
-  initClient(remoteQueue: string, connection: Connection, merger: RemoteObject<T>, logger: Logger) {
-    return this.client.init(remoteQueue, connection, merger, logger);
   }
 
   /**
@@ -89,13 +51,13 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param data data to be saved
    */
   async create(owner: string, data: Partial<T>): Promise<T> {
-    const newObject = await this.internalRepo.create({
-      object_state: ObjectState.Created,
-      __owner: owner,
-      ...data
-    });
-    await this.client.newObjectEvent(newObject);
-    return newObject.toObject();
+    return (
+      await this.internalRepo.create({
+        object_state: ObjectState.Created,
+        __owner: owner,
+        ...data
+      }))
+      .toObject();
   }
 
   /**
@@ -136,12 +98,8 @@ export class ObjectRepository<T extends PayloadModel> {
 
     const result = await this.collection.insertOne(withDefaults);
     const rawObject = await this.collection.findOne({ _id: result.insertedId });
-    rawObject.toObject = () => this.schema.toObject(rawObject);
 
-    // notify client
-    await this.client.newObjectEvent(rawObject);
-
-    return rawObject.toObject();
+    return rawObject;
   }
 
   async assertExists(query: object): Promise<void> {
@@ -170,8 +128,8 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param fresh allow mongodb return unstable objects. `false` by default
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
-  async byQuery(user: string, query: object, fresh = false, throwOrNull = true): Promise<T> {
-    const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh), null, throwOrNull);
+  async byQuery(user: string, query: object, fresh = false, throwOnNull = true): Promise<T> {
+    const maybePending = await this.internalRepo.byQuery(this.allowNew(query, fresh), null, throwOnNull);
 
     if (!maybePending) return null;
 
@@ -221,13 +179,11 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
       case ObjectState.Updated:
         const freshData = await this.inplaceUpdate(user, data, update);
-        await this.client.patch(data.id, freshData);
         return this.markup(user, freshData, true);
       case ObjectState.Deleted:
         throw new InvalidOperation("Can't update an item up that is to be deleted");
       case ObjectState.Stable:
         const newUpdate = await this.newUpdate(user, data, update);
-        await this.client.updateObjectEvent(newUpdate, update);
         return this.markup(user, newUpdate, true);
       default:
         throw new InconsistentState();
@@ -259,11 +215,9 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Updated:
       case ObjectState.Deleted:
         const freshData = await this.inplaceDelete(user, data);
-        await this.client.close(data.id);
         return this.markup(user, freshData, true);
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
-        await this.client.deleteObjectEvent(deletedData);
         return this.markup(user, deletedData, true);
       default:
         throw new InconsistentState();
@@ -417,8 +371,8 @@ export class ObjectRepository<T extends PayloadModel> {
           data.object_state === ObjectState.Created
             ? cleanPartial
             : {
-                __patch: mongoSet(data.__patch, cleanPartial)
-              }
+              __patch: mongoSet(data.__patch, cleanPartial)
+            }
       }
     );
   }

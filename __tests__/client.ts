@@ -1,6 +1,6 @@
 import { publisher } from "@random-guys/eventbus";
 import sinon from "sinon";
-import { CreateEvent, ObjectRepository, PayloadModel } from "../src";
+import { CreateEvent, ProHubRepository, PayloadModel } from "../src";
 
 const queue = sinon.stub(publisher, "queue");
 
@@ -9,26 +9,27 @@ export interface MockResult<T extends PayloadModel> {
 }
 
 export class RPCClientMock<T extends PayloadModel> {
-  constructor(private queue: string, private repo: ObjectRepository<T>) {}
+  constructor(private queue: string, private repo: ProHubRepository<T>) { }
 
   mockReview(method: string, result: MockResult<T>) {
-    return queue.withArgs(this.queue, sinon.match.any).callsFake(async (_queue: any, event: CreateEvent<T>) => {
-      if (!/create/.test(event.event_type)) {
+    return queue.withArgs(this.queue, sinon.match.any)
+      .callsFake(async (_queue: any, event: CreateEvent<T>) => {
+        if (!/create/.test(event.event_type)) {
+          return true;
+        }
+
+        switch (method) {
+          case "onApprove":
+            result.payload = await this.repo.merge(event.reference);
+            break;
+          case "onReject":
+            result.payload = await this.repo.reject(event.reference);
+            break;
+          default:
+        }
+
         return true;
-      }
-
-      switch (method) {
-        case "onApprove":
-          result.payload = await this.repo.merge(event.reference);
-          break;
-        case "onReject":
-          result.payload = await this.repo.reject(event.reference);
-          break;
-        default:
-      }
-
-      return true;
-    });
+      });
   }
 
   mockApproval(result: MockResult<T>) {
