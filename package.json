@@ -1,6 +1,6 @@
 {
   "name": "@random-guys/pro-vcs",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "Repo for implementing review requests",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -45,7 +45,7 @@
   "dependencies": {
     "@random-guys/bucket": "^0.10.0",
     "@random-guys/eventbus": "^2.0.1",
-    "@random-guys/iris": "^1.1.0",
+    "@random-guys/iris": "^1.1.1",
     "@random-guys/siber": "^0.14.1",
     "amqplib": "^0.5.5",
     "bunyan": "^1.8.12",
