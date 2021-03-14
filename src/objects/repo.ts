@@ -234,7 +234,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
         const deletedData = await this.newDelete(user, data);
         const markedUpDeletedData = this.markup(user, deletedData, true);
 
-        this.emit("delete", markedUpDeletedData);
+        this.emit("delete", user, markedUpDeletedData);
         return markedUpDeletedData;
       default:
         throw new InconsistentState();
