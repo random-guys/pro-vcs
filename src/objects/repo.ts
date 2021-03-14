@@ -193,7 +193,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
         const oldData = await this.newUpdate(user, data, update);
         const markedUpData = this.markup(user, oldData, true);
 
-        this.emit("update", user, oldData, markedUpData);
+        this.emit("update", user, data.toObject(), markedUpData);
         return markedUpData;
       default:
         throw new InconsistentState();
