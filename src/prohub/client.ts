@@ -2,40 +2,38 @@ import { publisher } from "@random-guys/eventbus";
 import { Connection } from "amqplib";
 import Logger from "bunyan";
 
-import { mongoSet } from "../object";
 import { ObjectRepository, PayloadModel } from "../objects";
 import { RPCService } from "../rpc";
 import { CloseEvent, DeleteObjectEvent, NewObjectEvent, PatchEvent, UpdateObjectEvent } from "./event-types";
-import { CheckResult, FinalRequest, RemoteObject } from "./merger";
+import { CheckResult, FinalRequest, MergeHandler } from "./merger";
 
-export interface RPCConnectionOptions {
+export interface AMQPOptions {
   remote_queue: string;
   amqp_connection: Connection;
 }
 
 /**
- * RemoteClient manages all interactions between a pro-vcs repo and its
- * remote. From queueing up request events to driving the communication
- * with the remote for approving, rejecting and running checks.
+ * ProhubClient manages all interactions between a pro-vcs repo and its
+ * prohub. From queueing up repo events to driving the communication
+ * with the prohub for approving, rejecting and running checks.
  */
-export class RemoteClient<T extends PayloadModel> {
+export class ProhubClient<T extends PayloadModel> {
   private server: RPCService;
   private remote: string;
 
   /**
-   * Create a new client for talking to the VCS's remote
+   * Create a new client for talking to the prohub
    * @param repository repository this client is to manage
    */
   constructor(private repository: ObjectRepository<T>) {}
 
   /**
-   * Setup the RPC server for running the `RemoteObject` of this repo and listener for repo events
-   * @param remoteQueue name of the queue for object events
-   * @param connection AMQP connection for the RPC server
-   * @param merger Instructions on how to merge, reject and validate
+   * Setup the RPC server for running the `MergeHandler` of this repo and listeners for repo events
+   * @param merger instructions on how to handle final requests(approvals and rejections)
    * @param logger logger for RPC server.
+   * @param options options for talking to rabbitmq
    */
-  async init(merger: RemoteObject<T>, logger: Logger, options: RPCConnectionOptions) {
+  async init(merger: MergeHandler<T>, logger: Logger, options: AMQPOptions) {
     if (this.server) {
       throw new Error("RPC server has already been setup");
     }

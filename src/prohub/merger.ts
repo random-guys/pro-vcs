@@ -2,9 +2,9 @@ import { PayloadModel } from "../objects";
 import { RPCRequest } from "../rpc/net";
 
 /**
- * RemoteObject is an object that can be merged or rejected.
+ * MergeHandler defines how to handle approvals and rejections from prohub
  */
-export interface RemoteObject<T extends PayloadModel> {
+export interface MergeHandler<T extends PayloadModel> {
   /**
    * onApprove does post-processing after object approval. Like `onReject`,
    * it must call the Repo's `merge` method.
