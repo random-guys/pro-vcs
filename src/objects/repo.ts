@@ -26,12 +26,12 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   private schema: ObjectSchema<T>;
 
   /**
-   * This creates an event repository
-   * @param conn This will ensure the same connection is shared
+   * This creates the repository
+   * @param conn mongoose connection for sharing
    * @param name name of the repo. Note that this will become kebab case in
    * Mongo DB
    * @param schema ObjectSchema or Mongoose SchemaDefinition for the repo.
-   * @param exclude properties to exclude from the serialized payload e.g. password
+   * @param exclude properties to exclude from the serialized(toJSON) payload e.g. password
    */
   constructor(conn: MongooseConnection, name: string, schema: ObjectSchema<T>);
   constructor(conn: MongooseConnection, name: string, schema: SchemaDefinition, exclude: string[]);
@@ -51,7 +51,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   }
 
   /**
-   * Create a frozen object and notify `pro-hub`
+   * Create a frozen object. Emits a `create` event with the owner and the new object
    * @param owner ID of user that can make further changes to this object until approved
    * @param data data to be saved
    */
@@ -114,8 +114,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   }
 
   /**
-   * Get an object based on it's owner. Check out `markup`
-   * for more details
+   * Get an object based on it's owner. Check out `markup` for more details of what is returned
    * @param user who's asking
    * @param reference ID of the object
    */
@@ -125,8 +124,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   }
 
   /**
-   * Search for an object based on a query. Note that this doesn't take
-   * into account pending updates.
+   * Search for an object based on a query. Note that this doesn't take into account pending updates.
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
    * @param fresh allow mongodb return unstable objects. `false` by default
@@ -141,8 +139,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   }
 
   /**
-   * Search for multiple objects based on a query. Note that this doesn't take
-   * into account pending updates.
+   * Search for multiple objects based on a query. Note that this doesn't take into account pending updates.
    * @param user who's asking. Use everyone if it's not important
    * @param query mongo query to use for search
    * @param fresh allow mongodb return unstable objects. `false` by default
@@ -169,8 +166,9 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   }
 
   /**
-   * Update an object in place if unstable or create a pending update
-   * if stable.
+   * Update an object in place if unstable or create a pending update if stable. Sends a `patch` event
+   * with old and new versions if was previously unstable, otherwise it sends an `update` event with the
+   * owner and the two versions.
    * @param user who wants to make such update
    * @param query MongoDB query object or id string
    * @param update updates to be made
@@ -212,9 +210,9 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   }
 
   /**
-   * Creates a pending delete for a stable object. Otherwise it just rolls back
-   * changes introduced. Fails if the `user` passed is not the object's temporary
-   * owner.
+   * Creates a pending delete for a stable object. Otherwise it just rolls back changes introduced. Fails if
+   * the `user` passed is not the object's temporary owner. Emits a `delete` event when a pending delete is created
+   * with the owner and the data, otherwise it just emits an `undo` event with the reference.
    * @param user who wants to do this
    * @param query MongoDB query object or id string
    */
@@ -438,6 +436,14 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
     );
   }
 
+  /**
+   * Transforms the object model applying patches if the `user` is the owner of an `updated`
+   * object, otherwise marking the object as frozen regardless of its unstable state.
+   * @param user user asking for the data
+   * @param data object model to be transformed
+   * @param fresh whether to return the unstable version of the object
+   * @returns a transformed version of the object model
+   */
   protected markup(user: string, data: ObjectModel<T>, fresh: boolean): T {
     if (!fresh) {
       return data.toObject();
