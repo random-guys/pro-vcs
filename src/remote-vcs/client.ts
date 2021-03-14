@@ -99,11 +99,11 @@ export class RemoteClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onPatch(reference: string, val: T) {
+  private async onPatch(_oldVal: T, newVal: T) {
     const event: PatchEvent<T> = {
       event_type: "patch",
-      reference: reference,
-      payload: val
+      reference: newVal.id,
+      payload: newVal
     };
     return await publisher.queue(this.remote, event);
   }
