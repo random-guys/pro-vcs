@@ -196,8 +196,9 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param update update to be applied
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
-  updateApproved(query: string | object, update: object, throwOnNull = true) {
-    return this.internalRepo.atomicUpdate(query, update, throwOnNull).then(asObject);
+  async updateApproved(query: string | object, update: object, throwOnNull = true) {
+    const x = await this.internalRepo.atomicUpdate(query, update, throwOnNull);
+    return asObject(x);
   }
 
   /**
@@ -229,8 +230,9 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param query MongoDB query object or id string
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
-  deleteApproved(query: string | object, throwOnNull = true) {
-    return this.internalRepo.destroy(query, throwOnNull).then(asObject);
+  async deleteApproved(query: string | object, throwOnNull = true) {
+    const x = await this.internalRepo.destroy(query, throwOnNull);
+    return asObject(x);
   }
 
   /**
@@ -368,11 +370,7 @@ export class ObjectRepository<T extends PayloadModel> {
       },
       {
         $set:
-          data.object_state === ObjectState.Created
-            ? cleanPartial
-            : {
-              __patch: mongoSet(data.__patch, cleanPartial)
-            }
+          data.object_state === ObjectState.Created ? cleanPartial : { __patch: mongoSet(data.__patch, cleanPartial) }
       }
     );
   }
@@ -424,7 +422,7 @@ export class ObjectRepository<T extends PayloadModel> {
     );
   }
 
-  protected markup(user: string, data: ObjectModel<T>, fresh: boolean) {
+  protected markup(user: string, data: ObjectModel<T>, fresh: boolean): T {
     if (!fresh) {
       return data.toObject();
     }
