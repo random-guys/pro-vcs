@@ -1,8 +1,10 @@
-import { ObjectState } from "../../../src";
-export * from "./user.model";
-export * from "./user.schema";
 import faker from "faker";
 
+import { ObjectState } from "../../../src";
+
+export * from "./user.model";
+export * from "./user.schema";
+export * from "./user.merger";
 export function mockEmptyUserEvent() {
   return {
     __owner: faker.random.uuid(),
