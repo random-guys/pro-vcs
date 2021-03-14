@@ -5,9 +5,11 @@ import {
   PaginationQueryResult,
   Query
 } from "@random-guys/bucket";
+import { EventEmitter } from "events";
 import startCase from "lodash/startCase";
 import { Collection, Connection as MongooseConnection, SchemaDefinition } from "mongoose";
 import uuid from "uuid/v4";
+
 import { mongoSet } from "../object";
 import { InconsistentState, InvalidOperation } from "./common";
 import { asObject, ObjectModel, ObjectState, PayloadModel } from "./model";
@@ -17,7 +19,7 @@ import { ObjectSchema } from "./schema";
  * `ObjectRepository` is base repository for reviewable objects. It tries it's best
  * to mirror `bucket's` `BaseRepository` methods.
  */
-export class ObjectRepository<T extends PayloadModel> {
+export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   readonly internalRepo: BaseRepository<ObjectModel<T>>;
   readonly name: string;
   private collection: Collection;
@@ -39,8 +41,11 @@ export class ObjectRepository<T extends PayloadModel> {
     schema: SchemaDefinition | ObjectSchema<T>,
     exclude: string[] = []
   ) {
+    super();
+
     this.schema = schema instanceof ObjectSchema ? schema : new ObjectSchema(schema, exclude);
     this.internalRepo = new BaseRepository(conn, name, this.schema.mongooseSchema);
+
     this.name = this.internalRepo.name;
     this.collection = this.internalRepo.model.collection;
   }
@@ -51,13 +56,11 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param data data to be saved
    */
   async create(owner: string, data: Partial<T>): Promise<T> {
-    return (
-      await this.internalRepo.create({
-        object_state: ObjectState.Created,
-        __owner: owner,
-        ...data
-      }))
-      .toObject();
+    const valRaw = await this.internalRepo.create({ object_state: ObjectState.Created, __owner: owner, ...data });
+    const val = valRaw.toObject();
+
+    this.emit("create", owner, val);
+    return val;
   }
 
   /**
@@ -99,6 +102,7 @@ export class ObjectRepository<T extends PayloadModel> {
     const result = await this.collection.insertOne(withDefaults);
     const rawObject = await this.collection.findOne({ _id: result.insertedId });
 
+    this.emit("create", owner, rawObject);
     return rawObject;
   }
 
@@ -178,13 +182,19 @@ export class ObjectRepository<T extends PayloadModel> {
     switch (data.object_state) {
       case ObjectState.Created:
       case ObjectState.Updated:
-        const freshData = await this.inplaceUpdate(user, data, update);
-        return this.markup(user, freshData, true);
+        const patchedData = await this.inplaceUpdate(user, data, update);
+        const markedUpPatch = this.markup(user, patchedData, true);
+
+        this.emit("patch", data.toObject(), markedUpPatch);
+        return markedUpPatch;
       case ObjectState.Deleted:
         throw new InvalidOperation("Can't update an item up that is to be deleted");
       case ObjectState.Stable:
-        const newUpdate = await this.newUpdate(user, data, update);
-        return this.markup(user, newUpdate, true);
+        const oldData = await this.newUpdate(user, data, update);
+        const markedUpData = this.markup(user, oldData, true);
+
+        this.emit("update", user, data.toObject(), markedUpData);
+        return markedUpData;
       default:
         throw new InconsistentState();
     }
@@ -196,8 +206,9 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param update update to be applied
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
-  updateApproved(query: string | object, update: object, throwOnNull = true) {
-    return this.internalRepo.atomicUpdate(query, update, throwOnNull).then(asObject);
+  async updateApproved(query: string | object, update: object, throwOnNull = true) {
+    const x = await this.internalRepo.atomicUpdate(query, update, throwOnNull);
+    return asObject(x);
   }
 
   /**
@@ -214,11 +225,17 @@ export class ObjectRepository<T extends PayloadModel> {
       case ObjectState.Created:
       case ObjectState.Updated:
       case ObjectState.Deleted:
-        const freshData = await this.inplaceDelete(user, data);
-        return this.markup(user, freshData, true);
+        const stableData = await this.inplaceDelete(user, data);
+        const markedUpData = this.markup(user, stableData, true);
+
+        this.emit("undo", data.id);
+        return markedUpData;
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
-        return this.markup(user, deletedData, true);
+        const markedUpDeletedData = this.markup(user, deletedData, true);
+
+        this.emit("delete", user, markedUpDeletedData);
+        return markedUpDeletedData;
       default:
         throw new InconsistentState();
     }
@@ -229,8 +246,9 @@ export class ObjectRepository<T extends PayloadModel> {
    * @param query MongoDB query object or id string
    * @param throwOnNull Whether to throw a `ModelNotFoundError` error if the document is not found. Defaults to true
    */
-  deleteApproved(query: string | object, throwOnNull = true) {
-    return this.internalRepo.destroy(query, throwOnNull).then(asObject);
+  async deleteApproved(query: string | object, throwOnNull = true) {
+    const x = await this.internalRepo.destroy(query, throwOnNull);
+    return asObject(x);
   }
 
   /**
@@ -368,11 +386,7 @@ export class ObjectRepository<T extends PayloadModel> {
       },
       {
         $set:
-          data.object_state === ObjectState.Created
-            ? cleanPartial
-            : {
-              __patch: mongoSet(data.__patch, cleanPartial)
-            }
+          data.object_state === ObjectState.Created ? cleanPartial : { __patch: mongoSet(data.__patch, cleanPartial) }
       }
     );
   }
@@ -424,7 +438,7 @@ export class ObjectRepository<T extends PayloadModel> {
     );
   }
 
-  protected markup(user: string, data: ObjectModel<T>, fresh: boolean) {
+  protected markup(user: string, data: ObjectModel<T>, fresh: boolean): T {
     if (!fresh) {
       return data.toObject();
     }

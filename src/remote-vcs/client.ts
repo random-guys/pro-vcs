@@ -1,18 +1,17 @@
 import { publisher } from "@random-guys/eventbus";
 import { Connection } from "amqplib";
 import Logger from "bunyan";
+
 import { mongoSet } from "../object";
-import { PayloadModel } from "../objects";
-import { ProHubRepository } from "../objects/prohub-repo";
+import { ObjectRepository, PayloadModel } from "../objects";
 import { RPCService } from "../rpc";
-import {
-  CloseEvent,
-  DeleteObjectEvent,
-  NewObjectEvent,
-  PatchEvent,
-  UpdateObjectEvent
-} from "./event-types";
+import { CloseEvent, DeleteObjectEvent, NewObjectEvent, PatchEvent, UpdateObjectEvent } from "./event-types";
 import { CheckResult, FinalRequest, RemoteObject } from "./merger";
+
+export interface RPCConnectionOptions {
+  remote_queue: string;
+  amqp_connection: Connection;
+}
 
 /**
  * RemoteClient manages all interactions between a pro-vcs repo and its
@@ -27,99 +26,90 @@ export class RemoteClient<T extends PayloadModel> {
    * Create a new client for talking to the VCS's remote
    * @param repository repository this client is to manage
    */
-  constructor(private repository: ProHubRepository<T>) { }
+  constructor(private repository: ObjectRepository<T>) {}
 
   /**
-   * Setup the RPC server for running the `RemoteObject` of
-   * this repo
+   * Setup the RPC server for running the `RemoteObject` of this repo and listener for repo events
    * @param remoteQueue name of the queue for object events
    * @param connection AMQP connection for the RPC server
    * @param merger Instructions on how to merge, reject and validate
    * @param logger logger for RPC server.
    */
-  async init(
-    remoteQueue: string,
-    connection: Connection,
-    merger: RemoteObject<T>,
-    logger: Logger
-  ) {
+  async init(merger: RemoteObject<T>, logger: Logger, options: RPCConnectionOptions) {
     if (this.server) {
       throw new Error("RPC server has already been setup");
     }
 
-    this.remote = remoteQueue;
+    this.remote = options.remote_queue;
 
+    // setup server for handling merger events
     this.server = new RPCService(this.repository.name, logger);
-    await this.server.init(connection);
+    await this.server.init(options.amqp_connection);
+    await this.server.addMethod<FinalRequest, T>("onApprove", req => merger.onApprove(req.body, req));
+    await this.server.addMethod<FinalRequest, T>("onReject", req => merger.onReject(req.body, req));
+    await this.server.addMethod<string, CheckResult[]>("onCheck", req => merger.onCheck(req.body, req));
 
-    await this.server.addMethod<FinalRequest, T>("onApprove", req =>
-      merger.onApprove(req.body, req)
-    );
-    await this.server.addMethod<FinalRequest, T>("onReject", req =>
-      merger.onReject(req.body, req)
-    );
-    await this.server.addMethod<string, CheckResult[]>("onCheck", req =>
-      merger.onCheck(req.body, req)
-    );
+    // setup listeners for repo events
+    this.repository.addListener("create", this.onCreate.bind(this));
+    this.repository.addListener("update", this.onUpdate.bind(this));
+    this.repository.addListener("delete", this.onDelete.bind(this));
+    this.repository.addListener("patch", this.onPatch.bind(this));
+    this.repository.addListener("undo", this.onUndo.bind(this));
   }
 
   /**
    * Allow users shutdown the server gracefully
    */
-  async shutdownClient() {
+  async shutdown() {
+    this.repository.removeAllListeners();
     return this.server.close();
   }
 
-  async newObjectEvent(owner: string, object: T) {
+  private async onCreate(owner: string, val: T) {
     const event: NewObjectEvent<T> = {
       event_type: "create.new",
       namespace: this.repository.name,
-      reference: object.id,
+      reference: val.id,
       owner: owner,
-      payload: object
+      payload: val
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async updateObjectEvent(owner: string, oldPayload: T, update: Partial<T>, patch: any) {
-    const freshPayload = mongoSet(oldPayload, patch);
-
+  private async onUpdate(owner: string, oldVal: T, newVal: T) {
     const event: UpdateObjectEvent<T> = {
       event_type: "create.update",
       namespace: this.repository.name,
-      reference: oldPayload.id,
+      reference: oldVal.id,
       owner: owner,
-      payload: freshPayload,
-      previous_version: oldPayload
+      payload: newVal,
+      previous_version: oldVal
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async deleteObjectEvent(owner: string, objectToDelete: T) {
+  private async onDelete(owner: string, val: T) {
     const event: DeleteObjectEvent<T> = {
       event_type: "create.delete",
       namespace: this.repository.name,
-      reference: objectToDelete.id,
+      reference: val.id,
       owner: owner,
-      payload: objectToDelete
+      payload: val
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async patch(reference: string, payload: T) {
+  private async onPatch(_oldVal: T, newVal: T) {
     const event: PatchEvent<T> = {
       event_type: "patch",
-      reference: reference,
-      payload: payload
+      reference: newVal.id,
+      payload: newVal
     };
     return await publisher.queue(this.remote, event);
   }
 
-  async close(reference: string) {
-    const event: CloseEvent = {
-      event_type: "close",
-      reference
-    };
+  private async onUndo(reference: string) {
+    const event: CloseEvent = { event_type: "close", reference };
     return await publisher.queue(this.remote, event);
   }
 }
