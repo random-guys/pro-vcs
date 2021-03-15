@@ -1,7 +1,7 @@
 import { publisher } from "@random-guys/eventbus";
 import sinon from "sinon";
 
-import { PayloadModel } from "../src";
+import { PayloadModel } from "../../src";
 
 const queue = sinon.stub(publisher, "queue");
 

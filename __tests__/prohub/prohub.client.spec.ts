@@ -5,11 +5,11 @@ import dotenv from "dotenv";
 import mongoose, { Connection } from "mongoose";
 import sinon from "sinon";
 
-import { ObjectRepository } from "../src";
-import { ProhubClient } from "../src";
-import { mockUser, User, UserMerger, UserSchema } from "./mocks/user";
+import { ObjectRepository } from "../../src";
+import { ProhubClient } from "../../src";
+import { mockUser, User, UserMerger, UserSchema } from "../mocks/user";
 import faker from "faker";
-import { mockCreate, mockUpdate, mockDelete, mockPatch, mockClose } from "./publisher.mock";
+import { mockCreate, mockUpdate, mockDelete, mockPatch, mockClose } from "./prohub.mock";
 
 let conn: Connection;
 let dataRepo: ObjectRepository<User>;
