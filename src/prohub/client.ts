@@ -97,7 +97,7 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onPatch(_oldVal: T, newVal: T) {
+  private async onPatch(_owner: string, _oldVal: T, newVal: T) {
     const event: PatchEvent<T> = {
       event_type: "patch",
       reference: newVal.id,
@@ -106,7 +106,7 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onUndo(reference: string) {
+  private async onUndo(_owner: string, reference: string) {
     const event: CloseEvent = { event_type: "close", reference };
     return await publisher.queue(this.remote, event);
   }

@@ -183,7 +183,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
         const patchedData = await this.inplaceUpdate(user, data, update);
         const markedUpPatch = this.markup(user, patchedData, true);
 
-        this.emit("patch", data.toObject(), markedUpPatch);
+        this.emit("patch", user, data.toObject(), markedUpPatch);
         return markedUpPatch;
       case ObjectState.Deleted:
         throw new InvalidOperation("Can't update an item up that is to be deleted");
@@ -226,7 +226,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
         const stableData = await this.inplaceDelete(user, data);
         const markedUpData = this.markup(user, stableData, true);
 
-        this.emit("undo", data.id);
+        this.emit("undo", user, data.id);
         return markedUpData;
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
