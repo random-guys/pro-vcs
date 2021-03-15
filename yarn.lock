@@ -641,7 +641,7 @@
   dependencies:
     amqplib "^0.5.3"
 
-"@random-guys/iris@^1.1.1":
+"@random-guys/iris@^1.1.0", "@random-guys/iris@^1.1.1":
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/@random-guys/iris/-/iris-1.1.1.tgz#199bdf474a2927fd882202fc01cf5488111dfd0a"
   integrity sha512-a7coXj4uDMMO2PufXtEIYanAi5DaYZyBFmwB6MQXMT/ixOuiFSPP//+gwhukMmiwuX9ID2KKdAApOBgLt57gsw==
@@ -649,6 +649,19 @@
     axios "^0.21.1"
     axios-retry "^3.1.2"
     npm-cli-login "^0.1.1"
+
+"@random-guys/pro-request-router@^0.9.0":
+  version "0.9.0"
+  resolved "https://registry.yarnpkg.com/@random-guys/pro-request-router/-/pro-request-router-0.9.0.tgz#9fbcd0f63ad16304346e056fda3f81da0d6892ce"
+  integrity sha512-cs4Nt5EZnQLqk7Mi3PbPibNNvs2D1NtB3G3fvcKnRGueEKQ6UEIWvG5ryJT65XnT8ms8MGkzC4LCHYE9mt/bTg==
+  dependencies:
+    "@random-guys/eventbus" "^2.0.1"
+    "@random-guys/iris" "^1.1.0"
+    amqplib "^0.6.0"
+    http-status-codes "^2.1.4"
+    jsonwebtoken "^8.5.1"
+    npm-cli-login "^0.1.1"
+    uuid "^8.3.1"
 
 "@random-guys/siber@^0.14.1":
   version "0.14.1"
@@ -1228,6 +1241,18 @@ amqplib@^0.5.5:
   version "0.5.5"
   resolved "https://registry.yarnpkg.com/amqplib/-/amqplib-0.5.5.tgz#698f0cb577e0591954a90572fcb3b8998a76fd40"
   integrity sha512-sWx1hbfHbyKMw6bXOK2k6+lHL8TESWxjAx5hG8fBtT7wcxoXNIsFxZMnFyBjxt3yL14vn7WqBDe5U6BGOadtLg==
+  dependencies:
+    bitsyntax "~0.1.0"
+    bluebird "^3.5.2"
+    buffer-more-ints "~1.0.0"
+    readable-stream "1.x >=1.1.9"
+    safe-buffer "~5.1.2"
+    url-parse "~1.4.3"
+
+amqplib@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/amqplib/-/amqplib-0.6.0.tgz#87857c7c95d56d22438ced4cf1f7e5f0dc43b309"
+  integrity sha512-zXCh4jQ77TBZe1YtvZ1n7sUxnTjnNagpy8MVi2yc1ive239pS3iLwm4e4d5o4XZGx1BdTKQ/U0ZmaDU3c8MxYQ==
   dependencies:
     bitsyntax "~0.1.0"
     bluebird "^3.5.2"
@@ -3018,6 +3043,11 @@ http-status-codes@^1.3.2, http-status-codes@^1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/http-status-codes/-/http-status-codes-1.4.0.tgz#6e4c15d16ff3a9e2df03b89f3a55e1aae05fb477"
   integrity sha512-JrT3ua+WgH8zBD3HEJYbeEgnuQaAnUeRRko/YojPAJjGmIfGD3KPU/asLdsLwKjfxOmQe5nXMQ0pt/7MyapVbQ==
+
+http-status-codes@^2.1.4:
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/http-status-codes/-/http-status-codes-2.1.4.tgz#453d99b4bd9424254c4f6a9a3a03715923052798"
+  integrity sha512-MZVIsLKGVOVE1KEnldppe6Ij+vmemMuApDfjhVSLzyYP+td0bREEYyAoIw9yFePoBXManCuBqmiNP5FqJS5Xkg==
 
 https-proxy-agent@^3.0.0:
   version "3.0.1"
@@ -6651,6 +6681,11 @@ uuid@^7.0.3:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-7.0.3.tgz#c5c9f2c8cf25dc0a372c4df1441c41f5bd0c680b"
   integrity sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==
+
+uuid@^8.3.1:
+  version "8.3.2"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
+  integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
 
 v8-to-istanbul@^4.1.3:
   version "4.1.4"
