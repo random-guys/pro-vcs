@@ -24,31 +24,59 @@ export interface RequestOptLoader<T extends CustomPayloadModel> {
 }
 
 export class CustomClient<T extends CustomPayloadModel> {
-  constructor(private repository: ObjectRepository<T>, private router: RequestRouter, options: RequestOptLoader<T>) {
+  constructor(
+    private repository: ObjectRepository<T>,
+    private router: RequestRouter,
+    private loader: RequestOptLoader<T>
+  ) {
     // setup listeners for repo events
-    this.repository.addListener("create", async (owner: string, val: T) => {
-      const opts = await options.getNewRequestOptions("create", owner, val);
-      await this.createRequest(val, opts, "create");
-    });
+    this.repository.addListener("create", this.onCreate.bind(this));
+    this.repository.addListener("update", this.onUpdate.bind(this));
+    this.repository.addListener("delete", this.onDelete.bind(this));
+    this.repository.addListener("patch", this.onPatch.bind(this));
+    this.repository.addListener("undo", this.onUndo.bind(this));
+  }
 
-    this.repository.addListener("update", async (owner: string, oldVal: T, newVal: T) => {
-      const opts = await options.getNewRequestOptions("update", owner, oldVal, newVal);
-      await this.createRequest(newVal, opts, "update");
-    });
+  async onCreate(owner: string, val: T) {
+    const opts = await this.loader.getNewRequestOptions("create", owner, val);
+    return this.createRequest(val, opts, "create");
+  }
 
-    this.repository.addListener("delete", async (owner: string, val: T) => {
-      const opts = await options.getNewRequestOptions("delete", owner, val);
-      await this.createRequest(val, opts, "delete");
-    });
+  async onUpdate(owner: string, oldVal: T, newVal: T) {
+    const opts = await this.loader.getNewRequestOptions("update", owner, oldVal, newVal);
+    await this.createRequest(newVal, opts, "update");
+  }
 
-    this.repository.addListener("patch", async (owner: string, oldVal: T, newVal) => {
-      const message = await options.getPatchRequestMessage(owner, oldVal, newVal);
-      await this.patchRequest(newVal, message);
-    });
+  async onDelete(owner: string, val: T) {
+    const opts = await this.loader.getNewRequestOptions("delete", owner, val);
+    await this.createRequest(val, opts, "delete");
+  }
 
-    this.repository.addListener("undo", async (owner: string, val: T) => {
-      const message = await options.getCloseRequestMessage(owner, val);
-      await this.closeRequest(val.id, message);
+  async onPatch(owner: string, oldVal: T, newVal: T) {
+    const message = await this.loader.getPatchRequestMessage(owner, oldVal, newVal);
+
+    this.router.patchRequest({ reference: newVal.id, payload: newVal });
+    return this.router.sendNotification<T>({
+      reference: newVal.id,
+      receiver: "reviewers",
+      message: {
+        subject: `Review ${this.repository.name} Update`,
+        content: message
+      }
+    });
+  }
+
+  async onUndo(owner: string, val: T) {
+    const message = await this.loader.getCloseRequestMessage(owner, val);
+
+    this.router.closeRequest({ reference: val.id });
+    return this.router.sendNotification<T>({
+      reference: val.id,
+      receiver: "reviewers",
+      message: {
+        subject: `Review ${this.repository.name} Update`,
+        content: message
+      }
     });
   }
 
@@ -78,30 +106,5 @@ export class CustomClient<T extends CustomPayloadModel> {
     });
 
     return res;
-  }
-
-  protected async patchRequest(payload: T, message: string) {
-    this.router.patchRequest({ reference: payload.id, payload });
-
-    return this.router.sendNotification<T>({
-      reference: payload.id,
-      receiver: "reviewers",
-      message: {
-        subject: `Review ${this.repository.name} Update`,
-        content: message
-      }
-    });
-  }
-
-  protected async closeRequest(reference: string, message: string) {
-    this.router.closeRequest({ reference });
-    return this.router.sendNotification<T>({
-      reference,
-      receiver: "reviewers",
-      message: {
-        subject: `Review ${this.repository.name} Update`,
-        content: message
-      }
-    });
   }
 }

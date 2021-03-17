@@ -63,7 +63,7 @@ export class ProhubClient<T extends PayloadModel> {
     return this.server.close();
   }
 
-  private async onCreate(owner: string, val: T) {
+  async onCreate(owner: string, val: T) {
     const event: NewObjectEvent<T> = {
       event_type: "create.new",
       namespace: this.repository.name,
@@ -74,7 +74,7 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onUpdate(owner: string, oldVal: T, newVal: T) {
+  async onUpdate(owner: string, oldVal: T, newVal: T) {
     const event: UpdateObjectEvent<T> = {
       event_type: "create.update",
       namespace: this.repository.name,
@@ -86,7 +86,7 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onDelete(owner: string, val: T) {
+  async onDelete(owner: string, val: T) {
     const event: DeleteObjectEvent<T> = {
       event_type: "create.delete",
       namespace: this.repository.name,
@@ -97,7 +97,7 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onPatch(_owner: string, _oldVal: T, newVal: T) {
+  async onPatch(owner: string, _oldVal: T, newVal: T) {
     const event: PatchEvent<T> = {
       event_type: "patch",
       reference: newVal.id,
@@ -106,7 +106,7 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  private async onUndo(_owner: string, reference: string) {
+  async onUndo(owner: string, reference: string) {
     const event: CloseEvent = { event_type: "close", reference };
     return await publisher.queue(this.remote, event);
   }
