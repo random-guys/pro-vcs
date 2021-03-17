@@ -74,7 +74,7 @@ export class CustomClient<T extends CustomPayloadModel> {
       reference: val.id,
       receiver: "reviewers",
       message: {
-        subject: `Review ${this.repository.name} Update`,
+        subject: "Closed Request",
         content: message
       }
     });

@@ -139,7 +139,7 @@ it("close the request and send notification when undo event is emitted", async (
 
   await dataRepo.delete(owner.id, id);
 
-  await timeout(400);
+  await timeout(500);
   expect(closeRequest.called).toBeTruthy();
   expect(sendNotification.called).toBeTruthy();
 });
