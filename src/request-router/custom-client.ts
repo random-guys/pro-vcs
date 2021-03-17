@@ -1,5 +1,5 @@
 import { ObjectRepository, PayloadModel } from "../objects";
-import { RequestRouter, PostCreateOptions } from "@random-guys/pro-request-router";
+import { RequestRouter, User } from "@random-guys/pro-request-router";
 
 export interface CustomPayloadModel extends PayloadModel {
   workspace: string;
@@ -7,16 +7,24 @@ export interface CustomPayloadModel extends PayloadModel {
 
 export type NewRequestAction = "create" | "update" | "delete";
 
-export interface RequestOptions<T extends CustomPayloadModel> {
-  getNewRequestOptions(action: "create", owner: string, val: T): Promise<PostCreateOptions>;
-  getNewRequestOptions(action: "update", owner: string, oldVal: T, newVal: T): Promise<PostCreateOptions>;
-  getNewRequestOptions(action: "delete", owner: string, val: T): Promise<PostCreateOptions>;
+export interface NewRequestOptions {
+  owner?: User;
+  approvers: User[];
+  new_request_message: string;
+  mail_template: string;
+  mail_vars: object[];
+}
+
+export interface RequestOptLoader<T extends CustomPayloadModel> {
+  getNewRequestOptions(action: "create", owner: string, val: T): Promise<NewRequestOptions>;
+  getNewRequestOptions(action: "update", owner: string, oldVal: T, newVal: T): Promise<NewRequestOptions>;
+  getNewRequestOptions(action: "delete", owner: string, val: T): Promise<NewRequestOptions>;
   getPatchRequestMessage(owner: string, oldVal: T, newVal: T): Promise<string>;
   getCloseRequestMessage(owner: string, val: T): Promise<string>;
 }
 
 export class CustomClient<T extends CustomPayloadModel> {
-  constructor(private repository: ObjectRepository<T>, private router: RequestRouter, options: RequestOptions<T>) {
+  constructor(private repository: ObjectRepository<T>, private router: RequestRouter, options: RequestOptLoader<T>) {
     // setup listeners for repo events
     this.repository.addListener("create", async (owner: string, val: T) => {
       const opts = await options.getNewRequestOptions("create", owner, val);
@@ -44,9 +52,10 @@ export class CustomClient<T extends CustomPayloadModel> {
     });
   }
 
-  protected async createRequest(t: T, options: PostCreateOptions, action: NewRequestAction) {
+  protected async createRequest(t: T, options: NewRequestOptions, action: NewRequestAction) {
     await this.router.createRequest<T>({
       reference: t.id,
+      owner: options.owner,
       namespace: this.repository.name.toLowerCase(),
       request_type: action,
       payload: t,
@@ -59,11 +68,11 @@ export class CustomClient<T extends CustomPayloadModel> {
       expected: 1,
       message: {
         subject: `Review ${this.repository.name}`,
-        content: options.newRequestMessage,
+        content: options.new_request_message,
         mail: {
-          template: options.mailTemplate,
+          template: options.mail_template,
           template_type: "mjml",
-          template_vars: options.mailVars
+          template_vars: options.mail_vars
         }
       }
     });
