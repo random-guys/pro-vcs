@@ -1,7 +1,7 @@
 import { BaseRepository, defaultMongoOpts } from "@random-guys/bucket";
 import mongoose, { Connection } from "mongoose";
-import { ObjectModel, ObjectState } from "../src";
-import { mockEmptyUserEvent, User, UserSchema } from "./mocks/user";
+import { ObjectModel, ObjectState } from "../../src";
+import { mockEmptyUserEvent, User, UserSchema } from "../mocks/user";
 
 describe("Event Schema Rules", () => {
   let conn: Connection;
