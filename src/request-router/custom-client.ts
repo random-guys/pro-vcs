@@ -33,7 +33,7 @@ export class CustomClient<T extends CustomPayloadModel> {
 
     this.repository.addListener("update", async (owner: string, oldVal: T, newVal: T) => {
       const opts = await options.getNewRequestOptions("update", owner, oldVal, newVal);
-      await this.createRequest(newVal, opts, "create");
+      await this.createRequest(newVal, opts, "update");
     });
 
     this.repository.addListener("delete", async (owner: string, val: T) => {
