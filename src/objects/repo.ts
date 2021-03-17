@@ -212,7 +212,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
   /**
    * Creates a pending delete for a stable object. Otherwise it just rolls back changes introduced. Fails if
    * the `user` passed is not the object's temporary owner. Emits a `delete` event when a pending delete is created
-   * with the owner and the data, otherwise it just emits an `undo` event with the reference.
+   * with the owner and the data, otherwise it just emits an `undo` event with the payload.
    * @param user who wants to do this
    * @param query MongoDB query object or id string
    */
@@ -226,7 +226,7 @@ export class ObjectRepository<T extends PayloadModel> extends EventEmitter {
         const stableData = await this.inplaceDelete(user, data);
         const markedUpData = this.markup(user, stableData, true);
 
-        this.emit("undo", user, data.id);
+        this.emit("undo", user, data);
         return markedUpData;
       case ObjectState.Stable:
         const deletedData = await this.newDelete(user, data);
