@@ -1,6 +1,7 @@
-import { SchemaDefinition } from "mongoose";
 import { trimmedString } from "@random-guys/bucket";
-import { ObjectSchema } from "../../../src/objects/schema";
+import { SchemaDefinition } from "mongoose";
+
+import { ObjectSchema } from "../../../src/";
 import { User } from "./user.model";
 
 const UserSchemaDef: SchemaDefinition = {

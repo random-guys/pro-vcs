@@ -1,11 +1,11 @@
 import { defaultMongoOpts } from "@random-guys/bucket";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 import mongoose, { Connection } from "mongoose";
-import { ObjectState } from '../src/objects';
-import { ObjectRepository } from '../src/objects/repo';
-import { User } from "./mocks/user";
-import { mockUser } from './mocks/user/index';
-import { UserSchema } from './mocks/user/user.schema';
+import { ObjectState } from "../../src/objects";
+import { ObjectRepository } from "../../src/objects/repo";
+import { User } from "../mocks/user";
+import { mockUser } from "../mocks/user/index";
+import { UserSchema } from "../mocks/user/user.schema";
 
 let conn: Connection;
 let dataRepo: ObjectRepository<User>;
@@ -69,5 +69,5 @@ describe("Creating in mongodb directly", () => {
       expect(mergedUser["age"]).toBe(10);
       expect(mergedUser["wildlife"]).toBe(true);
     });
-  })
+  });
 });

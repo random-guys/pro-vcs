@@ -1,4 +1,4 @@
-import { PayloadModel } from "../../../src/objects";
+import { PayloadModel } from "../../../src";
 
 export interface User extends PayloadModel {
   full_name: string;

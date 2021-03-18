@@ -1,12 +1,12 @@
 import { defaultMongoOpts } from "@random-guys/bucket";
-import dotenv from 'dotenv';
-import faker from 'faker';
+import dotenv from "dotenv";
+import faker from "faker";
 import mongoose, { Connection } from "mongoose";
-import { ObjectState } from '../src/objects';
-import { ObjectRepository } from '../src/objects/repo';
-import { User } from "./mocks/user";
-import { mockUser } from './mocks/user/index';
-import { UserSchema } from './mocks/user/user.schema';
+import { ObjectState } from "../../src/objects";
+import { ObjectRepository } from "../../src/objects/repo";
+import { User } from "../mocks/user";
+import { mockUser } from "../mocks/user/index";
+import { UserSchema } from "../mocks/user/user.schema";
 
 let conn: Connection;
 let dataRepo: ObjectRepository<User>;

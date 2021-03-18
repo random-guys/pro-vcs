@@ -5,15 +5,15 @@ import dotenv from "dotenv";
 import mongoose, { Connection } from "mongoose";
 import sinon from "sinon";
 
-import { ObjectRepository } from "../src";
-import { RemoteClient } from "../src/";
-import { mockUser, User, UserMerger, UserSchema } from "./mocks/user";
+import { ObjectRepository } from "../../src";
+import { ProhubClient } from "../../src";
+import { mockUser, User, UserMerger, UserSchema } from "../mocks/user";
 import faker from "faker";
-import { mockCreate, mockUpdate, mockDelete, mockPatch, mockClose } from "./publisher.mock";
+import { mockCreate, mockUpdate, mockDelete, mockPatch, mockClose } from "./prohub.mock";
 
 let conn: Connection;
 let dataRepo: ObjectRepository<User>;
-let client: RemoteClient<User>;
+let client: ProhubClient<User>;
 
 beforeAll(async () => {
   dotenv.config();
@@ -24,7 +24,7 @@ beforeAll(async () => {
   await publisher.init(process.env.AMQP_URL);
   const logger = createLogger({ name: "test" });
 
-  client = new RemoteClient(dataRepo);
+  client = new ProhubClient(dataRepo);
   await client.init(new UserMerger(), logger, {
     remote_queue: process.env.QUEUE,
     amqp_connection: publisher.getConnection()
