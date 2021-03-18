@@ -25,7 +25,7 @@ export class ProhubClient<T extends PayloadModel> {
    * Create a new client for talking to the prohub
    * @param repository repository this client is to manage
    */
-  constructor(private repository: ObjectRepository<T>) {}
+  constructor(private repository: ObjectRepository<T>) { }
 
   /**
    * Setup the RPC server for running the `MergeHandler` of this repo and listeners for repo events
@@ -106,8 +106,8 @@ export class ProhubClient<T extends PayloadModel> {
     return await publisher.queue(this.remote, event);
   }
 
-  async onUndo(owner: string, reference: string) {
-    const event: CloseEvent = { event_type: "close", reference };
+  async onUndo(owner: string, val: T) {
+    const event: CloseEvent = { event_type: "close", reference: val.id };
     return await publisher.queue(this.remote, event);
   }
 }
