@@ -28,7 +28,10 @@ export class CustomClient<T extends CustomPayloadModel> {
     private repository: ObjectRepository<T>,
     private router: RequestRouter,
     private loader: RequestOptLoader<T>
-  ) {
+  ) { }
+
+  init(repo: ObjectRepository<T>) {
+    this.repository = repo;
     // setup listeners for repo events
     this.repository.addListener("create", this.onCreate.bind(this));
     this.repository.addListener("update", this.onUpdate.bind(this));
