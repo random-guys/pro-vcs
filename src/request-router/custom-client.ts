@@ -24,8 +24,9 @@ export interface RequestOptLoader<T extends CustomPayloadModel> {
 }
 
 export class CustomClient<T extends CustomPayloadModel> {
+  private repository: ObjectRepository<T>;
+
   constructor(
-    private repository: ObjectRepository<T>,
     private router: RequestRouter,
     private loader: RequestOptLoader<T>
   ) { }

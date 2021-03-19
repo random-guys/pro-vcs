@@ -20,12 +20,7 @@ export interface AMQPOptions {
 export class ProhubClient<T extends PayloadModel> {
   private server: RPCService;
   private remote: string;
-
-  /**
-   * Create a new client for talking to the prohub
-   * @param repository repository this client is to manage
-   */
-  constructor(private repository: ObjectRepository<T>) { }
+  private repository: ObjectRepository<T>;
 
   /**
    * Setup the RPC server for running the `MergeHandler` of this repo and listeners for repo events
@@ -33,11 +28,12 @@ export class ProhubClient<T extends PayloadModel> {
    * @param logger logger for RPC server.
    * @param options options for talking to rabbitmq
    */
-  async init(merger: MergeHandler<T>, logger: Logger, options: AMQPOptions) {
+  async init(repo: ObjectRepository<T>, merger: MergeHandler<T>, logger: Logger, options: AMQPOptions) {
     if (this.server) {
       throw new Error("RPC server has already been setup");
     }
 
+    this.repository = repo;
     this.remote = options.remote_queue;
 
     // setup server for handling merger events

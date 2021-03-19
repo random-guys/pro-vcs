@@ -27,7 +27,8 @@ beforeAll(async () => {
   conn = await mongoose.createConnection(process.env.MONGODB_URL, defaultMongoOpts);
   dataRepo = new ObjectRepository(conn, "User", BeneficiarySchemaDef);
 
-  new CustomClient(dataRepo, Router, Loader);
+  const client = new CustomClient(Router, Loader);
+  client.init(dataRepo)
 }, 5000);
 
 afterAll(async () => {
