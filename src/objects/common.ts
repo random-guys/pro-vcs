@@ -1,6 +1,5 @@
 /**
- * `InvalidOperation` is usually thrown when a user tries
- * to perform an operation on a frozen payload
+ * `InvalidOperation` is usually thrown when a user tries to perform an operation on a frozen payload
  */
 export class InvalidOperation extends Error {
   constructor(message: string) {
@@ -9,8 +8,7 @@ export class InvalidOperation extends Error {
 }
 
 /**
- * `InconsistentState` should only be thrown if invariants are not properly
- * enforced, or possible concurrency issues.
+ * `InconsistentState` should only be thrown if invariants are not properly enforced, or possible concurrency issues.
  */
 export class InconsistentState extends Error {
   constructor() {
