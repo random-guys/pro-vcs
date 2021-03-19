@@ -24,15 +24,13 @@ export interface RequestOptLoader<T extends CustomPayloadModel> {
 }
 
 export class CustomClient<T extends CustomPayloadModel> {
-  private repository: ObjectRepository<T>;
-
   constructor(
+    private repository: ObjectRepository<T>,
     private router: RequestRouter,
     private loader: RequestOptLoader<T>
   ) { }
 
-  async addListeners(repo: ObjectRepository<T>) {
-    this.repository = repo;
+  async setupListeners() {
     // setup listeners for repo events
     this.repository.addListener("create", this.onCreate.bind(this));
     this.repository.addListener("update", this.onUpdate.bind(this));

@@ -29,7 +29,7 @@ beforeAll(async () => {
     remote_queue: process.env.QUEUE,
     amqp_connection: publisher.getConnection()
   });
-  await client.addListeners();
+  await client.setupListeners();
 }, 5000);
 
 afterAll(async () => {
