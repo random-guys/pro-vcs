@@ -46,7 +46,9 @@ export class ProhubClient<T extends PayloadModel> {
     await this.server.addMethod<FinalRequest, T>("onApprove", req => merger.onApprove(req.body, req));
     await this.server.addMethod<FinalRequest, T>("onReject", req => merger.onReject(req.body, req));
     await this.server.addMethod<string, CheckResult[]>("onCheck", req => merger.onCheck(req.body, req));
+  }
 
+  async setupListeners() {
     // setup listeners for repo events
     this.repository.addListener("create", this.onCreate.bind(this));
     this.repository.addListener("update", this.onUpdate.bind(this));
