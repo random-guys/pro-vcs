@@ -20,7 +20,12 @@ export interface AMQPOptions {
 export class ProhubClient<T extends PayloadModel> {
   private server: RPCService;
   private remote: string;
-  private repository: ObjectRepository<T>;
+
+  /**
+   * Create a new client for talking to the prohub
+   * @param repository repository this client is to manage
+   */
+  constructor(private repository: ObjectRepository<T>) { }
 
   /**
    * Setup the RPC server for running the `MergeHandler` of this repo and listeners for repo events
@@ -28,12 +33,11 @@ export class ProhubClient<T extends PayloadModel> {
    * @param logger logger for RPC server.
    * @param options options for talking to rabbitmq
    */
-  async init(repo: ObjectRepository<T>, merger: MergeHandler<T>, logger: Logger, options: AMQPOptions) {
+  async init(merger: MergeHandler<T>, logger: Logger, options: AMQPOptions) {
     if (this.server) {
       throw new Error("RPC server has already been setup");
     }
 
-    this.repository = repo;
     this.remote = options.remote_queue;
 
     // setup server for handling merger events
@@ -42,7 +46,9 @@ export class ProhubClient<T extends PayloadModel> {
     await this.server.addMethod<FinalRequest, T>("onApprove", req => merger.onApprove(req.body, req));
     await this.server.addMethod<FinalRequest, T>("onReject", req => merger.onReject(req.body, req));
     await this.server.addMethod<string, CheckResult[]>("onCheck", req => merger.onCheck(req.body, req));
+  }
 
+  async addListeners() {
     // setup listeners for repo events
     this.repository.addListener("create", this.onCreate.bind(this));
     this.repository.addListener("update", this.onUpdate.bind(this));

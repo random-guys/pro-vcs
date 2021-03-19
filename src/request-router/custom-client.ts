@@ -31,7 +31,7 @@ export class CustomClient<T extends CustomPayloadModel> {
     private loader: RequestOptLoader<T>
   ) { }
 
-  init(repo: ObjectRepository<T>) {
+  async addListeners(repo: ObjectRepository<T>) {
     this.repository = repo;
     // setup listeners for repo events
     this.repository.addListener("create", this.onCreate.bind(this));

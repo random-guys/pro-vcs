@@ -28,7 +28,7 @@ beforeAll(async () => {
   dataRepo = new ObjectRepository(conn, "User", BeneficiarySchemaDef);
 
   const client = new CustomClient(Router, Loader);
-  client.init(dataRepo)
+  await client.addListeners(dataRepo)
 }, 5000);
 
 afterAll(async () => {

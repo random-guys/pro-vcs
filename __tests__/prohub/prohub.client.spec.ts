@@ -24,11 +24,12 @@ beforeAll(async () => {
   await publisher.init(process.env.AMQP_URL);
   const logger = createLogger({ name: "test" });
 
-  client = new ProhubClient();
-  await client.init(dataRepo, new UserMerger(), logger, {
+  client = new ProhubClient(dataRepo);
+  await client.init(new UserMerger(), logger, {
     remote_queue: process.env.QUEUE,
     amqp_connection: publisher.getConnection()
   });
+  await client.addListeners();
 }, 5000);
 
 afterAll(async () => {
