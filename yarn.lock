@@ -650,10 +650,10 @@
     axios-retry "^3.1.2"
     npm-cli-login "^0.1.1"
 
-"@random-guys/pro-request-router@^0.11.0":
-  version "0.11.0"
-  resolved "https://registry.yarnpkg.com/@random-guys/pro-request-router/-/pro-request-router-0.11.0.tgz#5fc99b69de6d4aee0add40d4db760c553d800cde"
-  integrity sha512-u5j62OZ1itPZgh1tZaRhiQf/NTrkZ6I0jMoG4qbIXe9hLAAVOhNSpN0fAE2zrZTCpzPXEJexH0IAcY86+56/OA==
+"@random-guys/pro-request-router@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@random-guys/pro-request-router/-/pro-request-router-0.12.0.tgz#c5d0502fa07421a2bd7b42777b64acea452ba6d9"
+  integrity sha512-ggmOvQQy6xke1v6w7PtAsuojxgAgG7LJghCavlf0a26h9/g78/mK8p1JNE9PPJCUTMwBOasdhHdcr4Lb20s1sg==
   dependencies:
     "@random-guys/eventbus" "^2.0.1"
     "@random-guys/iris" "^1.1.0"

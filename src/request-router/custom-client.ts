@@ -1,5 +1,5 @@
 import { ObjectRepository, PayloadModel } from "../objects";
-import { RequestRouter, User } from "@random-guys/pro-request-router";
+import { RequestRouter, TemplateVars, User } from "@random-guys/pro-request-router";
 
 export interface CustomPayloadModel extends PayloadModel {
   workspace: string;
@@ -12,7 +12,7 @@ export interface NewRequestOptions {
   approvers: User[];
   new_request_message: string;
   mail_template: string;
-  mail_vars: object[];
+  mail_vars: TemplateVars[];
 }
 
 export interface RequestOptLoader<T extends CustomPayloadModel> {
